@@ -1,0 +1,265 @@
+class FollowEnemyLogic : ZilchComponent
+{
+    var Player : Cog = null;
+    var FollowEnemy: EnemyClass = null;
+    
+    // Change the direction of patrolling
+    var ChangeDir : Boolean = false;
+    // Start Patrolling after waiting for awhile
+    var StartPatrol : Boolean = true;
+    
+    //
+    var HitPoints : Real = 40;
+    [Property]
+    // Movement speed
+    var PatrolSpeed : Real = 2;
+    [Property]
+    var ChaseSpeed : Real = 4;
+    // How fast the Character accelerates
+    [Property]
+    var Acceleration : Real = 38;
+    // Amount that pulls the Character down
+    [Property]
+    var Gravity : Real = 22;
+    // How high the Character can jump
+    [Property]
+    var JumpHeight : Real = 12;
+    
+    [Property]
+    var PatrolWaitDelay : Real = 3;
+    [Property]
+    var ChaseWaitDelay : Real = 1;
+    
+    // Detect if Player is in range
+    [Property]
+    var ChaseDistance : Real = 4;
+    
+    // How close the enemy and the player is
+    var CloseDistance : Real = 1.3;
+    
+    var GameSpace : Space = null;
+    
+    function Initialize(init : CogInitializer)
+    {
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+        
+        this.FollowEnemy = new EnemyClass(this.Owner,
+                                            this.Owner.BoxCollider.Size, 
+                                            this.Owner.BoxCollider.Offset,
+                                            EnemyState.Wait,
+                                            this.HitPoints,
+                                            this.PatrolSpeed,
+                                            this.ChaseSpeed,
+                                            this.Acceleration,
+                                            this.Gravity,
+                                            this.JumpHeight,
+                                            this.PatrolWaitDelay,
+                                            this.ChaseWaitDelay,
+                                            this.ChaseDistance);
+
+        this.Player = this.Space.FindObjectByName("Player");
+        
+        this.FollowEnemy.StartPos = this.Owner.Transform.Translation;
+        
+        this.FollowEnemy.Fire = this.Space.Create(Archetype.Find("FireParticleBig"));
+        this.FollowEnemy.Fire.SphericalParticleEmitter.Active = false;
+        
+        this.GameSpace = this.GameSession.FindSpaceByName("Main");
+    }
+    
+    function UpdateCollision()
+    {
+        foreach(var contact in this.Owner.BoxCollider.Contacts)
+        {
+            if(contact.OtherObject.ArchetypeName == "Player")
+            {
+                //this.FollowEnemy.EnemyState = EnemyState.Attack;
+            }
+            else if(contact.OtherObject.ArchetypeName == "Pit")
+            {
+                this.FollowEnemy.Fire.Destroy();
+                this.Owner.Destroy();
+            }
+        }
+    }
+    
+    function AllowUpdate(dt: Real) : Boolean
+    {
+        if (!this.Player.PlayerMainLogic.IsAlive || this.Player.PlayerMainLogic.HasComplete
+            || this.Player.PlayerMainLogic.Starting)
+        {
+            if (this.Player.PlayerMainLogic.IsAlive && this.Player.PlayerMainLogic.Starting)
+            {
+                this.Owner.Transform.Translation = this.FollowEnemy.StartPos;
+                this.Owner.EnemyAnimation.Reset();
+            }
+            
+            this.FollowEnemy.Fire.SphericalParticleEmitter.Active = false;
+            this.FollowEnemy.AmountToMove.X = 0;
+            this.FollowEnemy.AmountToMove.Y -= this.FollowEnemy.Gravity * dt;
+            this.FollowEnemy.Move(this.GameSpace, this.FollowEnemy.AmountToMove * dt);
+            this.FollowEnemy.DoDamage = false;
+            this.FollowEnemy.Chase = false;
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+    
+    function BurnEnemy(dt: Real)
+    {
+        this.FollowEnemy.EnemyState = EnemyState.Attack;
+        
+        this.CloseDistance = 0.5;
+        
+        this.FollowEnemy.Fire.Transform.Translation = this.Owner.Transform.Translation;
+        this.FollowEnemy.Fire.SphericalParticleEmitter.Active = true;
+        
+        this.Owner.Sprite.Color = this.FollowEnemy.DamagedTint;
+    }
+    
+    function ChasePlayer(curDirection: Real3, thePlayerPos: Real3, dt: Real)
+    {
+        if (curDirection.X > 0)
+        {
+            this.Owner.Sprite.FlipX = true;
+        }
+        else
+        {
+            this.Owner.Sprite.FlipX = false;
+        }
+        
+        this.FollowEnemy.EnemyState = EnemyState.Chase;
+    
+        // Move only if not really close to the player
+        // this prevents spasm
+        if (this.Owner.Transform.Translation.X >= thePlayerPos.X + this.CloseDistance ||
+                this.Owner.Transform.Translation.X <= thePlayerPos.X - this.CloseDistance)
+        {
+                      
+        }
+        else
+        {
+            curDirection.X = 0;
+            this.FollowEnemy.EnemyState = EnemyState.Wait;
+        }
+        
+        if (this.FollowEnemy.MoveStop)
+        {
+            this.FollowEnemy.TargetSpeed = 0;
+            this.FollowEnemy.CurrentSpeed = 0;
+        }
+        
+        // This one increases the speed gradually
+        // So the character does not move at max speed at the start
+        
+        if (this.FollowEnemy.Dying)
+        {
+            this.FollowEnemy.TargetSpeed = curDirection.X * this.FollowEnemy.RunningSpeed;
+        }
+        else
+        {
+            this.FollowEnemy.TargetSpeed = curDirection.X * this.FollowEnemy.Speed;
+            
+
+        }
+        this.FollowEnemy.CurrentSpeed = this.FollowEnemy.IncrementTowards(
+                                                this.FollowEnemy.CurrentSpeed, 
+                                                this.FollowEnemy.TargetSpeed, 
+                                                this.FollowEnemy.Acceleration, dt);
+        
+        if (this.FollowEnemy.Grounded)
+        {
+            this.FollowEnemy.AmountToMove.Y = 0;
+        }
+        
+        // Set to chasing
+        this.FollowEnemy.Chase = true;
+    }
+    
+    function CheckForPlayer(toPlayer: Real3, curDirection: Real3, dt: Real)
+    {
+        this.FollowEnemy.ChaseIncrement += dt;
+        // Go back to start position
+        var toStart = this.FollowEnemy.StartPos - this.Owner.Transform.Translation;
+        toStart = local Real3(toStart.X, 0.0, 0.0);
+        // Normalize
+        var currDirection = Math.Normalize(toStart);
+        
+        this.FollowEnemy.EnemyState = EnemyState.Wait;
+        this.FollowEnemy.TargetSpeed = 0;
+        this.FollowEnemy.CurrentSpeed = 0;
+
+        if (Math.Length(toPlayer) <= this.FollowEnemy.DetectRange)
+        {                            
+            var dirVec = this.Player.Transform.Translation - this.Owner.Transform.Translation;
+            // Normalize to get only the direction
+            dirVec = local Real3(dirVec.X, 0.0, 0.0);
+            var dirToPlayer = Math.Normalize(dirVec);
+            
+            if (currDirection.X == dirToPlayer.X && this.FollowEnemy.AtEdge)
+            {
+                // Get it out of the edge
+                this.FollowEnemy.TargetSpeed = curDirection.X * this.ChaseSpeed;
+                this.FollowEnemy.CurrentSpeed = this.FollowEnemy.IncrementTowards(
+                                                    this.FollowEnemy.CurrentSpeed, 
+                                                    this.FollowEnemy.TargetSpeed, 
+                                                    this.FollowEnemy.Acceleration, dt);
+            }
+        }
+    }
+    
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        if (!this.AllowUpdate(event.Dt))
+        {
+            return;
+        }
+        
+        this.FollowEnemy.UpdateAnimation(event.Dt);
+
+        // Get the direction vector towards the player
+        var thePlayerPos = this.Player.Transform.Translation;
+        var toPlayer = thePlayerPos - this.Owner.Transform.Translation;
+        
+        // Normalize to get only the direction
+        toPlayer = local Real3(toPlayer.X, toPlayer.Y, 0.0);
+        var curDirection = Math.Normalize(toPlayer);
+        
+        if (this.FollowEnemy.CornerCounter < 3)
+        {
+           this.FollowEnemy.AtEdge = true;
+        }
+        else
+        {
+            this.FollowEnemy.AtEdge = false;
+        }
+        
+        // Get the magnitude of the direction vector
+        // If player is close by
+        if(Math.Length(toPlayer) < this.FollowEnemy.DetectRange 
+            && !this.FollowEnemy.AtEdge)
+        {
+            this.ChasePlayer(curDirection, thePlayerPos, event.Dt);
+        }
+        else
+        {
+            this.CheckForPlayer(toPlayer, curDirection, event.Dt);
+        }
+        
+        // If the Enemy is getting hit by the sunflower ray
+        if(this.FollowEnemy.Dying)
+        {   
+            this.BurnEnemy(event.Dt);
+        }
+        
+        this.UpdateCollision();
+        
+        // Set the amount to move the character
+        this.FollowEnemy.AmountToMove.X = this.FollowEnemy.CurrentSpeed;
+        this.FollowEnemy.AmountToMove.Y -= this.FollowEnemy.Gravity * event.Dt;
+        this.FollowEnemy.Move(this.GameSpace, this.FollowEnemy.AmountToMove * event.Dt);
+    }
+}

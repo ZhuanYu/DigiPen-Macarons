@@ -1,0 +1,49 @@
+Cog = 
+{
+	LinkId = 
+	{
+		uint Id = 1,
+	},
+	Named = 
+	{
+		string Name = "BGMEmitter",
+	},
+	Transform = 
+	{
+		Vec3 Translation = [-10.5, 3.6, -2.04351e-007],
+		Vec3 Scale = [1, 1, 1],
+		Quat Rotation = [0, 0, 0, 1],
+	},
+	Sprite = 
+	{
+		string SpriteSource = "5275aa4d802dd6dc:Square",
+		bool FlipX = false,
+		bool FlipY = false,
+		Vec4 Color = [1, 1, 1, 1],
+		bool Visible = false,
+		bool OnTop = false,
+		bool AnimationActive = true,
+		float AnimationSpeed = 1,
+		uint StartFrame = 0,
+		BlendMode BlendMode = Alpha,
+		SpriteGeometryMode GeometryMode = ZPlane,
+		string SpriteLayer = "52ad5fa30d7fcd50:DefaultSpriteLayer",
+	},
+	SoundEmitter = 
+	{
+		bool StartPlaying = false,
+		int ExtraPriority = 0,
+		string CueName = "53bd577d604696e2:BGM_Darkenin",
+		float Volume = 1,
+		float Pitch = 1,
+		bool Positional = false,
+	},
+	BGMEmitterLogic = 
+	{
+	},
+	RandomContext = 
+	{
+		bool RandomSeed = true,
+		uint Seed = 294979,
+	},
+},

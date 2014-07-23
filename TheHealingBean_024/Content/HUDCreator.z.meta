@@ -1,0 +1,8 @@
+TextContent = 
+{
+	ZilchScriptBuilder = 
+	{
+		string Name = "HUDCreator",
+		uint64 ResourceId = 53a480d25a09edf0,
+	},
+},

@@ -1,0 +1,33 @@
+class BGMEmitterLogic : ZilchComponent
+{
+    var Player: Cog = null;
+    
+    var WaitDelay: Real = 1.0;
+    var WaitDelayIncrement: Real = 0;
+    
+    function Initialize(init : CogInitializer)
+    {
+        this.Player = this.Space.FindObjectByName("Player");
+        
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+    }
+
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        this.Owner.Transform.Translation = this.Player.Transform.Translation + Real3(0,1,0);
+        
+        if(this.Owner.SoundEmitter.IsPlaying() == false)
+        {
+            if(this.WaitDelayIncrement > this.WaitDelay)
+            {
+                this.Owner.SoundEmitter.Play();
+                this.WaitDelayIncrement = 0;
+                this.WaitDelay = this.Owner.RandomContext.Range(2.0,8.0);
+            }
+            else
+            {
+                this.WaitDelayIncrement += event.Dt;
+            }
+        }
+    }
+}

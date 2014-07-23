@@ -1,0 +1,69 @@
+//MISSING DOCUMENTATION
+class HUDTooltipPickup : ZilchComponent
+{
+    var LevelSettings : Cog = null;
+
+    [Property]
+    var LevelName : String = "";
+    
+    var LevelDisplayDelay : Real = 0.5;
+    var LevelDisplayDuration : Real = 1.5;
+    
+    var ResetDelay : Real = 2.0;
+    
+    var IsDisplayingLevelName : Boolean = false;
+    var IsDone : Boolean = false;
+    
+    function Initialize(init : CogInitializer)
+    {
+        this.LevelSettings = this.Owner.HUDCreator.HUDSpace.LevelSettings;
+        
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+    }
+    
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        if(this.IsDone)
+        {
+            return;
+        }
+        
+        if(this.IsDisplayingLevelName == false)
+        {
+            if(this.LevelDisplayDelay < 0)
+            {
+                this.SetCompletionText(this.LevelName);
+                this.SetTooltipVisibility(true);
+                this.IsDisplayingLevelName = true;
+            }
+            else
+            {
+                this.LevelDisplayDelay -= event.Dt;
+            }
+        }
+        else
+        {
+            if(this.LevelDisplayDuration < 0)
+            {
+                this.SetTooltipVisibility(false);
+                this.IsDisplayingLevelName = false;
+                this.IsDone = true;
+            }
+            else
+            {
+                this.LevelDisplayDuration -= event.Dt;
+            }
+        }
+    }
+    
+    function SetTooltipVisibility(visible : Boolean)
+    {
+        this.LevelSettings.HUDInteractionLogic.SetCompleteVisibility(visible);
+    }
+    
+    function SetCompletionText(text : String)
+    {
+        this.LevelSettings.HUDInteractionLogic.ResetCompleteText();
+        this.LevelSettings.HUDInteractionLogic.SetCompleteText(text);
+    }
+}

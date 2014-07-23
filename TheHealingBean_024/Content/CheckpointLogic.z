@@ -1,0 +1,38 @@
+class CheckpointLogic : ZilchComponent
+{
+    var IsFinished : Boolean = false;
+    var IsSelected : Boolean = false;
+    
+    var RoseTransitionDelay : Real = 15.0;
+    var RoseTransitionIncrement : Real = 0;
+    
+    function Initialize(init : CogInitializer)
+    {
+    }
+    
+    function SelectCheckpoint()
+    {
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+    }
+
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        if(this.IsFinished)
+        {
+            return;
+        }
+        
+        if(this.RoseTransitionIncrement > this.RoseTransitionDelay)
+        {
+            this.Owner.Sprite.CurrentFrame = 6;
+            
+            this.IsFinished = true;
+            this.IsSelected = true;
+        }
+        else
+        {
+            this.RoseTransitionIncrement += event.Dt;
+            this.Owner.Sprite.CurrentFrame = Math.Floor(6 * this.RoseTransitionIncrement/this.RoseTransitionDelay) as Integer;            
+        }
+    }
+}

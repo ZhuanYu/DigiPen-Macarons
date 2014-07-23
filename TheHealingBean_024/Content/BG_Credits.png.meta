@@ -1,0 +1,20 @@
+ImageContent = 
+{
+	SpriteSourceBuilder = 
+	{
+		string Name = "BG_Credits",
+		uint64 ResourceId = 534b19fdf51df49d,
+		uint64 AtlasId = 5274cf95e4a661fd,
+		uint FrameSizeX = 1280,
+		uint FrameSizeY = 720,
+		uint FrameCount = 1,
+		float FrameDelay = 0.0833333,
+		float OriginX = 640,
+		float OriginY = 360,
+		float PixelsPerUnit = 64,
+		bool Smoothing = true,
+		bool Looping = true,
+		Vec4 Slices = [0, 0, 0, 0],
+		SpriteFill Fill = Stretch,
+	},
+},

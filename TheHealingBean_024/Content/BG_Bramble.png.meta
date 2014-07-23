@@ -1,0 +1,20 @@
+ImageContent = 
+{
+	SpriteSourceBuilder = 
+	{
+		string Name = "BG_Bramble",
+		uint64 ResourceId = 53a7f771cc9355a7,
+		uint64 AtlasId = 5274cf95e4a661fd,
+		uint FrameSizeX = 640,
+		uint FrameSizeY = 384,
+		uint FrameCount = 1,
+		float FrameDelay = 0.0833333,
+		float OriginX = 320,
+		float OriginY = 192,
+		float PixelsPerUnit = 64,
+		bool Smoothing = true,
+		bool Looping = true,
+		Vec4 Slices = [0, 0, 0, 0],
+		SpriteFill Fill = Stretch,
+	},
+},

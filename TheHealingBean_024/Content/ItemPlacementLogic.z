@@ -1,0 +1,66 @@
+//No documentation
+class ItemPlacementLogic : ZilchComponent
+{
+    var Player : Cog = null;
+    var IsValidPlacement : Boolean = false; //Whether an item can be placed on the current spot
+    constructor() : base()
+    {
+    }
+
+    function Initialize(init : CogInitializer)
+    {
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+        
+        this.Player = this.Space.FindObjectByName("Player");
+    }
+    
+    function OnAllObjectsCreated()
+    {
+        
+    }
+
+    function UpdateValidPlacement()
+    {
+        this.IsValidPlacement = this.GetValidPlacement();
+    }
+    
+    function GetValidPlacement() : Boolean
+    {
+        var isValid : Boolean = false;
+        
+        foreach(var contactHolder in this.Owner.BoxCollider.Contacts)
+        {
+            if(contactHolder.OtherObject.ArchetypeName == "DefaultTile")
+            {
+                isValid = true;
+                break;
+            }
+            else
+            {
+                isValid = false;
+                break;
+            }
+        }
+        
+        return isValid;
+    }
+    
+    function OnLogicUpdate(updateEvent : UpdateEvent)
+    {
+        var tempPosition : Real3 = this.Player.Transform.Translation;
+        
+        this.Owner.Transform.Translation = local Real3(Math.Ceil(tempPosition.X) - 0.5, 
+                                                        Math.Ceil(tempPosition.Y) - 0.5, 0.2);
+                                                        
+        if (this.Player.Sprite.FlipX)
+        {
+            
+        }
+        else
+        {
+            
+        }
+        
+        this.UpdateValidPlacement();
+    }
+}

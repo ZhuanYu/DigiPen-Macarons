@@ -1,0 +1,420 @@
+//Author: Evan Tay
+//Date: 26/5/14
+//Title: HUD Interaction Logic
+//Description: This script is used by the parent level (which created this HUD level) to access the HUD objects on this level.
+
+enum TransitionState
+{
+    Inactive,
+    FadeOutSecondLine,
+    MoveDownFirstLine,
+    FadeInFirstLine
+}
+
+class HUDInteractionLogic : ZilchComponent
+{
+    //SpriteTexts
+    var HUDInstructions1 : Cog = null;
+    var HUDInstructions2 : Cog = null;
+    var HUDInstructionsBack : Cog = null;
+    
+    var FadeSpeed : Real = 2.5;
+    var MoveSpeed : Real = 1.5;
+    
+    var FadeState : TransitionState = TransitionState.Inactive;
+    
+    var Instructions1Active : Boolean = false;
+    var Instructions2Active : Boolean = false;
+
+    var HUDInstructions1Pos : Real3 = local Real3(0,0,0);
+    var HUDInstructions2Pos : Real3 = local Real3(0,0,0);
+    
+    var HUDComplete : Cog = null;
+    
+    var HUDCompleteVisible : Boolean = false;
+    
+    var HUDInventory : Cog = null;
+    var HUDFade : Cog = null;
+    
+    var StoreText : String = null;
+    
+    constructor() : base()
+    {
+    }
+
+    function Initialize(init : CogInitializer)
+    {
+        //Initialize SpriteTexts
+        this.HUDInstructions1 = this.Owner.Space.FindObjectByName("HUD_Instructions1");
+        
+        if(this.HUDInstructions1 != null)
+        {
+            this.HUDInstructions1Pos = this.HUDInstructions1.Transform.Translation;
+        }
+        
+        this.HUDInstructions2 = this.Owner.Space.FindObjectByName("HUD_Instructions2");
+        
+        if(this.HUDInstructions2 != null)
+        {
+            this.HUDInstructions2Pos = this.HUDInstructions2.Transform.Translation;
+        }
+        
+        this.HUDInstructionsBack = this.Owner.Space.FindObjectByName("HUD_InstructionsBack");
+        
+        this.SetInstructions1Alpha(0.0);
+        this.SetInstructions2Alpha(0.0);
+        this.SetInstructionsBackAlpha(0.0);
+        
+        this.HUDComplete = this.Owner.Space.FindObjectByName("HUD_Complete");
+        this.HUDInventory = this.Owner.Space.FindObjectByName("HUD_Inventory");
+        this.HUDFade = this.Owner.Space.FindObjectByName("HUD_DeathFade");
+        
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+    }
+
+    function UnfadeDeathFade(amt : Real)
+    {
+        if(this.HUDFade.Sprite.Color.W > 0)
+        {
+            if(this.HUDFade.Sprite.Color.W - amt < 0)
+            {
+                this.HUDFade.Sprite.Color = Real4(0,0,0,0);
+            }
+            else
+            {
+                this.HUDFade.Sprite.Color -= Real4(0.0,0.0,0.0,amt);
+            }
+        }
+    }
+    
+    function FadeDeathFade(amt : Real)
+    {
+        if(this.HUDFade.Sprite.Color.W < 1.0)
+        {
+            if(this.HUDFade.Sprite.Color.W + amt > 1.0)
+            {
+                this.HUDFade.Sprite.Color = Real4(0,0,0,1.0);
+            }
+            else
+            {
+                this.HUDFade.Sprite.Color += Real4(0.0,0.0,0.0,amt);
+            }
+        }
+    }
+    
+    //Set visibility of the Instructions SpriteText
+    function SetInstructionsVisibility(visible : Boolean)
+    {
+        /*this.HUDInstructions1.SpriteText.Visible = visible;
+        this.HUDInstructions2.SpriteText.Visible = visible;
+        this.HUDInstructionsBack.Sprite.Visible = visible;*/
+    }
+    
+    function SetInstructions1Alpha(alpha : Real)
+    {
+        if(this.HUDInstructions1 == null)
+        {
+            return;
+        }
+        
+        var color = this.HUDInstructions1.SpriteText.Color;
+        this.HUDInstructions1.SpriteText.Color = local Real4(color.X, color.Y, color.Z, alpha);
+    }
+    
+    function SetInstructions2Alpha(alpha : Real)
+    {
+        if(this.HUDInstructions2 == null)
+        {
+            return;
+        }
+        
+        var color = this.HUDInstructions2.SpriteText.Color;
+        this.HUDInstructions2.SpriteText.Color = local Real4(color.X, color.Y, color.Z, alpha);
+    }
+    
+    function SetInstructionsBackAlpha(alpha : Real)
+    {
+        if(this.HUDInstructionsBack == null)
+        {
+            return;
+        }
+        
+        var color = this.HUDInstructionsBack.Sprite.Color;
+        this.HUDInstructionsBack.Sprite.Color = local Real4(color.X, color.Y, color.Z, alpha);
+    }
+    
+    function FadeInstructions1Alpha(alpha : Real)
+    {
+        if(this.HUDInstructions1 == null)
+        {
+            return;
+        }
+        
+        var color = this.HUDInstructions1.SpriteText.Color;
+        
+        var newAlpha = color.W + alpha;
+        
+        if(newAlpha < 0)
+        {
+            newAlpha = 0;
+        }
+        else if(newAlpha > 1.0)
+        {
+            newAlpha = 1.0;
+        }
+        
+        this.HUDInstructions1.SpriteText.Color = local Real4(color.X, color.Y, color.Z, newAlpha);
+    }
+    
+    function FadeInstructions2Alpha(alpha : Real)
+    {
+        if(this.HUDInstructions2 == null)
+        {
+            return;
+        }
+        
+        var color = this.HUDInstructions2.SpriteText.Color;
+        
+        var newAlpha = color.W + alpha;
+        
+        if(newAlpha < 0)
+        {
+            newAlpha = 0;
+        }
+        else if(newAlpha > 0.5)
+        {
+            newAlpha = 0.5;
+        }
+        
+        this.HUDInstructions2.SpriteText.Color = local Real4(color.X, color.Y, color.Z, newAlpha);
+    }
+    
+    function FadeInstructionsBackAlpha(alpha : Real) : Boolean
+    {
+        if(this.HUDInstructionsBack == null)
+        {
+            return false;
+        }
+        
+        var color = this.HUDInstructionsBack.Sprite.Color;
+        
+        var newAlpha = color.W + alpha;
+        
+        if(newAlpha < 0)
+        {
+            newAlpha = 0;
+        }
+        else if(newAlpha > 0.5)
+        {
+            newAlpha = 0.5;
+        }
+        
+        if(newAlpha == color.W)
+        {
+            return false;
+        }
+        
+        this.HUDInstructionsBack.Sprite.Color = local Real4(color.X, color.Y, color.Z, newAlpha);
+        return true;
+    }
+    
+    function FadeCompleteTextAlpha(alpha : Real)
+    {
+        if(this.HUDComplete == null)
+        {
+            return;
+        }
+        
+        var color = this.HUDComplete.SpriteText.Color;
+        
+        var newAlpha = color.W + alpha;
+        
+        if(newAlpha < 0)
+        {
+            newAlpha = 0;
+        }
+        else if(newAlpha > 1.0)
+        {
+            newAlpha = 1.0;
+        }
+        
+        this.HUDComplete.SpriteText.Color = local Real4(color.X, color.Y, color.Z, newAlpha);
+    }
+    
+    function SetInstructionsText(text : String)
+    {
+        if(!this.Instructions1Active)
+        {
+            this.HUDInstructions1.SpriteText.Text = text;
+            this.Instructions1Active = true;
+            this.FadeState = TransitionState.FadeInFirstLine;
+        }
+        else if(!this.Instructions2Active)
+        {
+            this.HUDInstructions2.SpriteText.Text = text;
+            this.FadeState = TransitionState.MoveDownFirstLine;
+        }
+        else
+        {
+            this.StoreText = text;
+            this.Instructions2Active = false;
+            this.FadeState = TransitionState.FadeOutSecondLine;
+        }
+    }
+    
+    function SetActive(isActive : Boolean)
+    {
+        this.Instructions1Active = isActive;
+        this.Instructions2Active = isActive;
+    }
+    
+    function IsInactive() : Boolean
+    {
+        return (this.FadeState == TransitionState.Inactive);
+    }
+    
+    function UpdateFade(dt : Real)
+    {
+        var fade : Real = this.FadeSpeed * dt;
+        
+        if(!(this.Instructions1Active || this.Instructions2Active))
+        {
+            fade *= -1;
+        }
+        
+        if(this.FadeInstructionsBackAlpha(fade))
+        {
+            return;
+        }
+        
+        fade = Math.Abs(fade);
+        
+        if(!this.Instructions1Active)
+        {
+            fade *= -1;
+        }
+        
+        this.FadeInstructions1Alpha(fade);
+        
+        fade = Math.Abs(fade);
+        
+        if(!this.Instructions2Active)
+        {
+            fade *= -1;
+        }
+        
+        this.FadeInstructions2Alpha(fade/2);
+        
+        fade = Math.Abs(fade);
+        
+        if(!this.HUDCompleteVisible)
+        {
+            fade *= -1;
+        }
+        
+        this.FadeCompleteTextAlpha(fade);
+    }
+    
+    function FadeInFirstLine()
+    {
+        if(this.HUDInstructions1.SpriteText.Color.W >= 1.0)
+        {
+            this.FadeState = TransitionState.Inactive;
+        }
+    }
+        
+    function MoveDownFirstLine(dt : Real)
+    {
+        var ins1pos = this.HUDInstructions1.Transform.Translation;
+        
+        if(ins1pos.Y > this.HUDInstructions2Pos.Y)
+        {
+            this.HUDInstructions1.Transform.Translation = local Real3(ins1pos.X, ins1pos.Y - this.MoveSpeed * dt, ins1pos.Z);
+            
+            if(this.HUDInstructions1.Transform.Translation.Y < this.HUDInstructions2Pos.Y)
+            {
+                this.HUDInstructions2.Transform.Translation = this.HUDInstructions1Pos;
+                this.FadeState = TransitionState.FadeInFirstLine;
+                this.Instructions2Active = true;
+                
+                var tempCog : Cog = this.HUDInstructions1;
+                
+                this.HUDInstructions1 = this.HUDInstructions2;
+                this.HUDInstructions2 = tempCog;
+            }
+        }
+    }
+    
+    function FadeOutSecondLine()
+    {
+        if(this.HUDInstructions2.SpriteText.Color.W <= 0.0)
+        {
+            this.HUDInstructions2.SpriteText.Text = this.StoreText;
+            this.FadeState = TransitionState.MoveDownFirstLine;
+        }
+    }
+    
+    function Debug()
+    {
+        Console.Write(this.FadeState);
+        Console.Write(" - ");
+        Console.Write(this.Instructions1Active);
+        Console.Write(",");
+        Console.WriteLine(this.Instructions2Active);
+    }
+            
+    function OnLogicUpdate(event : UpdateEvent)
+    {   
+        //this.Debug();
+        var dt : Real = event.Dt;
+         
+        this.UpdateFade(dt);
+         
+        if(this.FadeState == TransitionState.Inactive)
+        {
+            return;
+        }
+        
+        if(this.FadeState == TransitionState.FadeInFirstLine)
+        {
+            this.FadeInFirstLine();
+        }
+        else if(this.FadeState == TransitionState.MoveDownFirstLine)
+        {
+            this.MoveDownFirstLine(dt);
+        }
+        else if(this.FadeState == TransitionState.FadeOutSecondLine)
+        {
+            this.FadeOutSecondLine();
+        }
+    }
+    
+    //Set visibility of the Level Complete SpriteText
+    function SetCompleteVisibility(visible : Boolean) : Boolean
+    {
+        if(this.HUDComplete != null)
+        {
+            this.HUDCompleteVisible = visible;
+            return true;
+        }
+        
+        return false;
+    }
+    
+    function ResetCompleteText()
+    {
+        this.HUDComplete.SpriteText.Text = "Level Completed!";
+    }
+    
+    function SetCompleteText(text : String) : Boolean
+    {
+        if(this.HUDComplete != null)
+        {
+            this.HUDComplete.SpriteText.Text = text;
+            this.SetCompleteVisibility(true);
+            return true;
+        }
+
+        return false;
+    }
+}

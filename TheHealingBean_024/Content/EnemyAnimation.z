@@ -1,0 +1,243 @@
+class EnemyAnimation : ZilchComponent
+{
+    var Framerate : Real = 24;
+    var FrameDelay : Real = 0;
+    var FrameDelayIncrement : Real = 0;
+    var CurrentEnemy : EnemyClass = null;
+    
+    function Initialize(init : CogInitializer)
+    {
+        this.Owner.Sprite.AnimationActive = false;
+        
+        this.FrameDelay = 1/this.Framerate;
+        
+        if (this.Owner.PatrolEnemyLogic != null)
+        {
+            this.CurrentEnemy = this.Owner.PatrolEnemyLogic.PatrolEnemy;
+        }
+        else if (this.Owner.FollowEnemyLogic != null)
+        {
+            this.CurrentEnemy = this.Owner.FollowEnemyLogic.FollowEnemy;
+            Console.WriteLine(this.CurrentEnemy);
+        }
+    }
+    
+    function UpdateSpriteAnimation(dt: Real, state: EnemyState)
+    {
+        if (this.Owner.PatrolEnemyLogic != null)
+        {
+            if (state == EnemyState.Attack)
+            {
+                this.Framerate = 40;
+                this.FrameDelay = 1/this.Framerate;
+                
+                if (this.Owner.Sprite.CurrentFrame < 7)
+                {
+                    this.Owner.Sprite.CurrentFrame = 7;
+                    this.CurrentEnemy.DoDamage = false;
+                }
+                
+                if (this.FrameDelayIncrement > this.FrameDelay)
+                {
+                    if (this.Owner.Sprite.CurrentFrame < 14)
+                    {
+                        this.Owner.Sprite.CurrentFrame += 1;
+                    }
+                    else
+                    {
+                        this.Owner.Sprite.CurrentFrame = 7;
+                        this.CurrentEnemy.DoDamage = false;
+                    }
+                    
+                    if (this.Owner.Sprite.CurrentFrame >= 11)
+                    {
+                        this.CurrentEnemy.DoDamage = true;
+                    }
+                    
+                    this.FrameDelayIncrement = 0;
+                }
+                else
+                {
+                    this.FrameDelayIncrement += dt;
+                }
+            }
+            else if (state == EnemyState.Dying)
+            {
+                this.CurrentEnemy.DoDamage = false;
+                
+                if(this.Owner.Sprite.CurrentFrame < 15)
+                {
+                    this.Owner.Sprite.CurrentFrame = 15;
+                }
+                
+                if (this.FrameDelayIncrement > this.FrameDelay)
+                {
+                    if (this.Owner.Sprite.CurrentFrame < 17)
+                    {
+                        this.Owner.Sprite.CurrentFrame += 1;
+                    }
+                    else
+                    {
+                        this.Owner.Sprite.CurrentFrame = 15;
+
+                    }
+                    
+                    this.FrameDelayIncrement = 0;
+                }
+                else
+                {
+                    this.FrameDelayIncrement += dt;
+                }
+            }
+            else if (state == EnemyState.Dead)
+            {
+                this.CurrentEnemy.DoDamage = false;
+                
+                this.Framerate = 8;
+                this.FrameDelay = 1/this.Framerate;
+                
+                if(this.Owner.Sprite.CurrentFrame < 18)
+                {
+                    this.Owner.Sprite.CurrentFrame = 18;
+                }
+                
+                if (this.FrameDelayIncrement > this.FrameDelay)
+                {
+                    if (this.Owner.Sprite.CurrentFrame < 20)
+                    {
+                        this.Owner.Sprite.CurrentFrame += 1;
+                    }
+                    else
+                    {
+                        this.CurrentEnemy.Destroy = true;
+                    }
+                    
+                    this.FrameDelayIncrement = 0;
+                }
+                else
+                {
+                    this.FrameDelayIncrement += dt;
+                }
+            }
+            else
+            {
+                this.CurrentEnemy.DoDamage = false;
+                
+                if(this.Owner.Sprite.CurrentFrame > 6)
+                {
+                    this.Owner.Sprite.CurrentFrame = 0;
+                }
+                
+                if (state == EnemyState.Chase)
+                {
+                    this.Framerate = 30;
+                    this.FrameDelay = 1/this.Framerate;
+                }
+                else
+                {
+                    this.Framerate = 15;
+                    this.FrameDelay = 1/this.Framerate;
+                }
+                            
+                if(this.FrameDelayIncrement > this.FrameDelay)
+                {
+                    if(state != EnemyState.Wait)
+                    {
+                        if(this.Owner.Sprite.CurrentFrame < 6)
+                        {
+                            this.Owner.Sprite.CurrentFrame += 1;
+                        }
+                        else
+                        {
+                            this.Owner.Sprite.CurrentFrame = 0;
+                        }
+                        
+                        this.FrameDelayIncrement = 0;
+                    }
+                    else
+                    {
+                        this.Owner.Sprite.CurrentFrame = 0;
+                    }
+                }
+                else
+                {
+                    this.FrameDelayIncrement += dt;
+                }
+            }
+        }
+        else
+        {
+            if (state == EnemyState.Attack)
+            {
+                this.CurrentEnemy.DoDamage = true;
+                
+                if(this.Owner.Sprite.CurrentFrame > 7)
+                {
+                    this.Owner.Sprite.CurrentFrame = 4;
+                }
+                
+                if(this.FrameDelayIncrement > this.FrameDelay)
+                {
+                    if(state != EnemyState.Wait)
+                    {
+                        if(this.Owner.Sprite.CurrentFrame < 7)
+                        {
+                            this.Owner.Sprite.CurrentFrame += 1;
+                        }
+                        else
+                        {
+                            this.Owner.Sprite.CurrentFrame = 4;
+                        }
+                        
+                        this.FrameDelayIncrement = 0;
+                    }
+                    else
+                    {
+                        this.Owner.Sprite.CurrentFrame = 4;
+                    }
+                }
+                else
+                {
+                    this.FrameDelayIncrement += dt;
+                }
+            }
+            else
+            {
+                if(this.Owner.Sprite.CurrentFrame > 3)
+                {
+                    this.Owner.Sprite.CurrentFrame = 0;
+                }
+                
+                if(this.FrameDelayIncrement > this.FrameDelay)
+                {
+                    if(state != EnemyState.Wait)
+                    {
+                        if(this.Owner.Sprite.CurrentFrame < 3)
+                        {
+                            this.Owner.Sprite.CurrentFrame += 1;
+                        }
+                        else
+                        {
+                            this.Owner.Sprite.CurrentFrame = 0;
+                        }
+                        
+                        this.FrameDelayIncrement = 0;
+                    }
+                    else
+                    {
+                        this.Owner.Sprite.CurrentFrame = 0;
+                    }
+                }
+                else
+                {
+                    this.FrameDelayIncrement += dt;
+                }
+            }
+        }
+    }
+    
+    function Reset()
+    {
+        this.Owner.Sprite.CurrentFrame = 0;
+    }
+}

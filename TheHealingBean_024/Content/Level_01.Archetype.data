@@ -1,0 +1,35 @@
+Cog = 
+{
+	LinkId = 
+	{
+		uint Id = 1,
+	},
+	Named = 
+	{
+		string Name = "Level_01",
+	},
+	Archetyped = 
+	{
+		string Name = "53a4bf039794d331:Level_01",
+	},
+	Transform = 
+	{
+		Vec3 Translation = [0, 0, 0],
+		Vec3 Scale = [1, 1, 1],
+		Quat Rotation = [0, 0, 0, 1],
+	},
+	MultiSprite = 
+	{
+		Vec4 Color = [1, 1, 1, 1],
+		bool Visible = true,
+		BlendMode BlendMode = Alpha,
+		string SpriteLayer = "52ad5fa30d7fcd50:DefaultSpriteLayer",
+	},
+	TileMap = 
+	{
+		string SourceName = "",
+		string PaletteName = "",
+		float UnitsPerTile = 1,
+		float MeshThickness = 1.2,
+	},
+},

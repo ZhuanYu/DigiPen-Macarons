@@ -1,0 +1,20 @@
+ImageContent = 
+{
+	SpriteSourceBuilder = 
+	{
+		string Name = "HUD_VignetteEffect",
+		uint64 ResourceId = 53a0280702d58aa3,
+		uint64 AtlasId = 5274cf95e4a661fd,
+		uint FrameSizeX = 1280,
+		uint FrameSizeY = 720,
+		uint FrameCount = 1,
+		float FrameDelay = 0.0833333,
+		float OriginX = 640,
+		float OriginY = 360,
+		float PixelsPerUnit = 64,
+		bool Smoothing = true,
+		bool Looping = true,
+		Vec4 Slices = [0, 0, 0, 0],
+		SpriteFill Fill = Stretch,
+	},
+},

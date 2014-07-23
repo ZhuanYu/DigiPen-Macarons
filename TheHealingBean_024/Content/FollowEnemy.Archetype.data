@@ -1,0 +1,92 @@
+Cog = 
+{
+	LinkId = 
+	{
+		uint Id = 1,
+	},
+	Named = 
+	{
+		string Name = "FollowEnemy",
+	},
+	Archetyped = 
+	{
+		string Name = "5339e883e2607a8a:FollowEnemy",
+	},
+	Transform = 
+	{
+		Vec3 Translation = [5, 0.1, 0],
+		Vec3 Scale = [1, 1, 1],
+		Quat Rotation = [0, 0, 0, 1],
+	},
+	Sprite = 
+	{
+		string SpriteSource = "534bcbaf9f0131d0:SS_FollowEnemy",
+		bool FlipX = false,
+		bool FlipY = false,
+		Vec4 Color = [1, 1, 1, 1],
+		bool Visible = true,
+		bool OnTop = false,
+		bool AnimationActive = true,
+		float AnimationSpeed = 1,
+		uint StartFrame = 0,
+		BlendMode BlendMode = Alpha,
+		SpriteGeometryMode GeometryMode = ZPlane,
+		string SpriteLayer = "52ad5fa30d7fcd50:DefaultSpriteLayer",
+	},
+	RigidBody = 
+	{
+		bool Static = true,
+		bool Asleep = false,
+		bool Kinematic = false,
+		bool RotationLocked = true,
+		bool Mode2D = true,
+		bool AllowSleep = true,
+		bool Inherit2DMode = true,
+		Vec3 Velocity = [0, 0, 0],
+		Vec3 AngularVelocity = [0, 0, 0],
+	},
+	SpriteText = 
+	{
+		SpriteGeometryMode GeometryMode = ZPlane,
+		TextPositionMode Position = Centered,
+		string FontName = "4e7bac697bec55c5:Verdana",
+		uint FontSize = 20,
+		Vec4 Color = [1, 1, 1, 1],
+		bool Visible = false,
+		string Text = "State",
+		bool OnTop = true,
+		BlendMode BlendMode = Alpha,
+		Vec2 Size = [0, 0],
+		TextAlign Align = Center,
+		float PixelsPerUnit = 64,
+		bool Smoothing = true,
+		string SpriteLayer = "52ad5fa30d7fcd50:DefaultSpriteLayer",
+	},
+	TextFollow = 
+	{
+	},
+	BoxCollider = 
+	{
+		bool Ghost = true,
+		bool SendsMessages = true,
+		bool Seamless = false,
+		string MaterialName = "4faa6050b8692851:HardMaterial",
+		string SerializedGroupName = "4e740859314e5515:DefaultGroup",
+		Vec3 Offset = [0, -0.15, 0],
+		Vec3 Size = [0.85, 0.85, 0.5],
+	},
+	FollowEnemyLogic = 
+	{
+		float PatrolSpeed = 2,
+		float ChaseSpeed = 4,
+		float Acceleration = 38,
+		float Gravity = 22,
+		float JumpHeight = 12,
+		float PatrolWaitDelay = 3,
+		float ChaseWaitDelay = 1,
+		float ChaseDistance = 4,
+	},
+	EnemyAnimation = 
+	{
+	},
+},

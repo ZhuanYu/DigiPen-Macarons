@@ -1,0 +1,25 @@
+//Author: Evan Tay
+//Date: 26/5/14
+//Title: HUD Creator
+//Description: This script is used by the attached level to create a HUD sub-level.
+class HUDCreator : ZilchComponent
+{
+    [Property]
+    var HUDLevel : Level = null; //The HUD to be attached
+    var HUDSpace : Space = null; //The space to store the HUD
+    
+    constructor() : base()
+    {
+    }
+
+    function Initialize(init : CogInitializer)
+    {
+        this.HUDSpace = this.GameSession.CreateNamedSpace("HUDSpace", Archetype.Find("Space"));
+        this.HUDSpace.LoadLevel(this.HUDLevel);
+    }
+
+    function Destroyed()
+    {
+        this.HUDSpace.Destroy();
+    }
+}

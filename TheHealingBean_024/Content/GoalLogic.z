@@ -1,0 +1,35 @@
+class GoalLogic : ZilchComponent
+{
+    var Player : Cog = null;
+    
+    [Property]
+    var NextLevel : Level = null;
+    
+    function Initialize(init : CogInitializer)
+    {
+        //We want to listen for collisions to know when the player hit us
+        this.LevelSettings.HUDTooltipPickup.SetTooltipVisibility(false);
+        
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+        this.Player = this.Space.FindObjectByName("Player");
+    }
+
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        this.UpdateCollision();
+    }
+    
+    function UpdateCollision()
+    {        
+        foreach(var contact in this.Owner.BoxCollider.Contacts)
+        {
+            if(contact.OtherObject.ArchetypeName == "Player")
+            {
+                this.LevelSettings.HUDTooltipPickup.SetCompletionText("Level Completed!");
+                this.LevelSettings.HUDTooltipPickup.SetTooltipVisibility(true);
+                this.Player.PlayerMainLogic.HasComplete = true;
+                break;
+            }
+        }
+    }
+}

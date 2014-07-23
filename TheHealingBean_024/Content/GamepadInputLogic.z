@@ -1,0 +1,166 @@
+//Author: Evan Tay
+//Date: 26/5/14
+//Title: Keyboard Input Logic
+//Description: This script keeps track of gamepad input only.
+class GamepadInputLogic : ZilchComponent
+{
+    var InputX : Integer = 0; //-1 maps to LEFT, 0 to NO MOVEMENT and 1 to RIGHT
+    var InputY : Integer = 0; //-1 maps to DOWN, 0 to NO MOVEMENT and 1 to UP
+    var InputJump : Boolean = false;
+    var InputInteract : Boolean = false; //T represents interact input, F represents no interact input
+    //InputInteract is typically used for picking up objects, InputInteract2 is typically used to put down
+    //objects
+    var InputRotateInteract : Integer = 0; //-1 maps to LEFT, 0 to no ROTATION, 1 to RIGHT
+    var InputInventoryInteract : Integer = 0; //-1 for LEFT, 1 for RIGHT
+    var InputDialog : Boolean = false;
+    
+    [Property]
+    var GamepadIndex : Integer = 0;
+    [Property]
+    var DeadZone : Real = 0.2;
+    var Gamepad : Gamepad = null;
+    
+    constructor() : base()
+    {
+    }
+
+    function IsGamepadConnected() : Boolean
+    {
+        return this.Gamepad.IsActive;
+    }
+    
+    function Initialize(init : CogInitializer)
+    {
+        this.Gamepad =  Zero.Gamepads.GetGamePad(this.GamepadIndex);
+
+        Zero.Connect(this.Space, Events.LogicUpdate, this.CheckInput);
+    }
+    
+    function CheckInputLeft() : Boolean
+    {
+        return this.Gamepad.LeftStick.X < -this.DeadZone;
+    }
+    
+    function CheckInputRight() : Boolean
+    {
+        return this.Gamepad.LeftStick.X > this.DeadZone;
+    }
+    
+    function CheckInputUp() : Boolean
+    {
+        return this.Gamepad.LeftStick.Y > this.DeadZone;
+    }
+    
+    function CheckInputDown() : Boolean
+    {
+        return this.Gamepad.LeftStick.Y < -this.DeadZone;
+    }
+    
+    function CheckInputJump() : Boolean
+    {
+        return this.Gamepad.IsButtonHeld(Buttons.A);
+    }
+    
+    function CheckInputInteract() : Boolean
+    {
+        return this.Gamepad.IsButtonPressed(Buttons.X);
+    }
+    
+    function CheckInputRotateInteractLeft() : Boolean
+    {
+        return this.Gamepad.RightStick.X < -this.DeadZone;
+    }
+    
+    function CheckInputRotateInteractRight() : Boolean
+    {
+        return this.Gamepad.RightStick.X > this.DeadZone;
+    }
+    
+    function CheckInputInventoryPrev() : Boolean
+    {
+        return this.Gamepad.IsButtonPressed(Buttons.DpadLeft);
+    }
+    
+    function CheckInputInventoryNext() : Boolean
+    {
+        return this.Gamepad.IsButtonPressed(Buttons.DpadRight);
+    }
+    
+    function CheckInputDialog() : Boolean
+    {
+        return this.Gamepad.IsButtonPressed(Buttons.Y);
+    }
+    
+    function CheckInput(gamepadEvent : UpdateEvent)
+    {
+        //Console.WriteLine("hi");
+        
+        //InputX
+        if(this.CheckInputLeft())
+        {
+            //Input mapping to LEFT
+            this.InputX = -1;
+        }
+        else if(this.CheckInputRight())
+        {
+            //Input mapping to RIGHT
+            this.InputX = 1;
+        }
+        else
+        {
+            //Input mapping to NULL
+            this.InputX = 0;
+        }
+        
+        //InputY
+        if(this.CheckInputUp())
+        {
+            //Input mapping to UP
+            this.InputY = 1;
+        }
+        else if(this.CheckInputDown())
+        {
+            //Input mapping to DOWN
+            this.InputY = -1;
+        }
+        else
+        {
+            //Input mapping to NULL
+            this.InputY = 0;
+        }
+        
+        //InputJump
+        this.InputJump = this.CheckInputJump();
+        
+        //InputInteract
+        this.InputInteract = this.CheckInputInteract();
+        
+        if(this.CheckInputRotateInteractLeft())
+        {
+            this.InputRotateInteract = -1;
+        }
+        else if(this.CheckInputRotateInteractRight())
+        {
+            this.InputRotateInteract = 1;
+        }
+        else
+        {
+            this.InputRotateInteract = 0;
+        }
+        
+        if(this.CheckInputInventoryNext())
+        {
+            this.InputInventoryInteract = 1;
+        }
+        else if(this.CheckInputInventoryPrev())
+        {
+            this.InputInventoryInteract = -1;
+        }
+        else
+        {
+            this.InputInventoryInteract = 0;
+        }
+        
+        this.InputDialog = this.CheckInputDialog();
+    }
+}

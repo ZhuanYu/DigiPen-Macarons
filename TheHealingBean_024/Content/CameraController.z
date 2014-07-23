@@ -1,0 +1,100 @@
+class CameraController : ZilchComponent
+{
+    var IsActive : Boolean = true;
+    
+    [Property]
+    var TargetObject : CogPath = null;
+
+    //Trigger distances before camera start following
+    var HorizontalTriggerDistance : Real = 0.01;
+    var VerticalTriggerDistance : Real = 0.01;
+
+    var MoveSpeed : Real = 0;
+    var MinMoveSpeed : Real = 1.5;
+    var MaxMoveSpeed : Real = 5;
+    var MoveAccel : Real = 0;
+    var MinMoveAccel : Real = 0.3;
+    var MoveAccelAccel : Real = 0.6; //Make the move exponential
+    
+    constructor() : base()
+    {
+    }
+
+    function Initialize(init : CogInitializer)
+    {
+        this.MoveSpeed = this.MinMoveSpeed;
+        this.MoveAccel = this.MinMoveAccel;
+        
+        // init cam at player pos
+        var targetTranslation : Real3 = this.TargetObject.Cog.Transform.Translation;
+        targetTranslation.Z = this.Owner.Transform.LocalTranslation.Z;
+        targetTranslation += local Real3(0.0, 1.0, 0.0);
+        
+        this.Owner.Transform.Translation = targetTranslation;
+        
+        // we want to update our camera position each game loop
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+    }
+
+    function Accel(dt : Real)
+    {
+        if(this.MoveSpeed < this.MaxMoveSpeed)
+        {
+            this.MoveAccel += this.MoveAccelAccel * dt;
+            
+            this.MoveSpeed += this.MoveAccel * dt;
+            
+            if(this.MoveSpeed > this.MaxMoveSpeed)
+            {
+                this.MoveSpeed = this.MaxMoveSpeed;
+            }
+        }
+    }
+    
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        if(this.IsActive == false)
+        {
+            return;
+        }
+
+        // make a temporary to hold the players position
+        var currentTranslation : Real3 = this.Owner.Transform.Translation;
+        
+        var targetTranslation : Real3 = this.TargetObject.Cog.Transform.Translation;
+        targetTranslation += local Real3(0.0, 1.0, 0.0);
+        
+        var followTarget : Boolean = false;
+        
+        var horizontalDistance = targetTranslation.X - currentTranslation.X;
+        
+        if(horizontalDistance > this.HorizontalTriggerDistance || horizontalDistance < -this.HorizontalTriggerDistance)
+        {
+            followTarget = true;
+            this.Accel(event.Dt);
+        }
+        
+        var verticalDistance = targetTranslation.Y - currentTranslation.Y;
+        
+        if(verticalDistance > this.VerticalTriggerDistance || verticalDistance < -this.VerticalTriggerDistance)
+        {
+            followTarget = true;
+            this.Accel(event.Dt);
+            this.Accel(event.Dt);
+        }
+
+        if(followTarget)
+        {
+            var newTranslation : Real3 = local Real3(targetTranslation.X, targetTranslation.Y, currentTranslation.Z);
+            
+            var t = event.Dt * this.MoveSpeed;
+            
+            this.Owner.Transform.Translation = Math.Lerp(currentTranslation,newTranslation,t);
+        }
+        else
+        {
+            this.MoveAccel = this.MinMoveAccel;
+            this.MoveSpeed = this.MinMoveSpeed;
+        }
+    }
+}

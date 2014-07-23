@@ -1,0 +1,20 @@
+ImageContent = 
+{
+	SpriteSourceBuilder = 
+	{
+		string Name = "BG_PauseMenu",
+		uint64 ResourceId = 534acfdcf9651f0b,
+		uint64 AtlasId = 5274cf95e4a661fd,
+		uint FrameSizeX = 640,
+		uint FrameSizeY = 720,
+		uint FrameCount = 1,
+		float FrameDelay = 0.0833333,
+		float OriginX = 320,
+		float OriginY = 360,
+		float PixelsPerUnit = 64,
+		bool Smoothing = true,
+		bool Looping = true,
+		Vec4 Slices = [0, 0, 0, 0],
+		SpriteFill Fill = Stretch,
+	},
+},

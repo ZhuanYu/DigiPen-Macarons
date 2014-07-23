@@ -1,0 +1,230 @@
+class InventoryLogic : ZilchComponent
+{
+    var HUDSpace : Space = null;
+    
+    var LevelSettings : Cog = null;
+    
+    var InventoryArr : Array[String] = new Array[String]();
+    
+    var SpriteSourceArr : Array[SpriteSource] = new Array[SpriteSource]();
+    
+    var IconArr : Array[Cog] = new Array[Cog]();
+    
+    var BackIconArr : Array[Cog] = new Array[Cog]();
+    
+    var BackgroundInvent : Cog = null;
+    
+    var CurrentSelection : Integer = -1;
+    
+    var ColorWhenSelected : Real4 = Real4(1.0,0.7,0.0,1.0);
+    var ColorWhenUnselected : Real4 = Real4(0.85,0.95,1.0,1.0);
+    
+    // Timer to get how many seconds elapsed
+    // BeforeTime is the previous time
+    var BeforeTime : Real = 0.0;
+    // NowTime id the current time
+    var NowTime : Real = 0.0;
+
+    function Initialize(init : CogInitializer)
+    {
+        this.HUDSpace = this.Owner.HUDCreator.HUDSpace;
+        
+        this.LevelSettings = this.HUDSpace.LevelSettings;
+        
+        this.IconArr.Add(this.HUDSpace.FindObjectByName("Invent_00"));
+        this.IconArr.Add(this.HUDSpace.FindObjectByName("Invent_01"));
+        this.IconArr.Add(this.HUDSpace.FindObjectByName("Invent_02"));
+        this.IconArr.Add(this.HUDSpace.FindObjectByName("Invent_03"));
+        
+        this.BackIconArr.Add(this.HUDSpace.FindObjectByName("IconBack"));
+        this.BackIconArr.Add(this.HUDSpace.FindObjectByName("IconBack2"));
+        this.BackIconArr.Add(this.HUDSpace.FindObjectByName("IconBack3"));
+        this.BackIconArr.Add(this.HUDSpace.FindObjectByName("IconBack4"));
+        
+        this.BackgroundInvent = this.HUDSpace.FindObjectByName("BackgroundInvent");
+        
+        foreach(var cog:Cog in this.IconArr)
+        {
+            if(cog != null)
+            {
+                cog.Sprite.Visible = false;
+            }
+        }
+        
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+    }
+    
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        var icon: Cog = null;
+        var backicon : Cog = null;
+        
+        this.NowTime = event.TimePassed;
+        
+        for(var i = 0; i < 4; ++i)
+        {
+            icon = this.IconArr.Get(i);
+            backicon = this.BackIconArr.Get(i);
+            
+            
+            if (backicon.Sprite.Color.W > 0.2 && this.NowTime - this.BeforeTime >= 4.0)
+            {
+                backicon.Sprite.Color -= local Real4(0.0, 0.0, 0.0, 0.2 * event.Dt);
+                
+                icon.Sprite.Color -= local Real4(0.0, 0.0, 0.0, 0.2 * event.Dt);
+                
+                if (backicon.Sprite.Color.W <= 0.2)
+                {
+                    this.BeforeTime = this.NowTime;
+                }
+            }
+        }
+        
+        if (this.BackgroundInvent.Sprite.Color.W > 0.2 && this.NowTime - this.BeforeTime >= 4.0)
+        {
+            this.BackgroundInvent.Sprite.Color -= local Real4(0.0, 0.0, 0.0, 0.2 * event.Dt);
+        }
+    }
+
+    function UpdateHUDInventoryIcon()
+    {
+        var count: Integer = this.InventoryArr.Count;
+        var icon: Cog = null;
+        var backicon : Cog = null;
+        
+        for(var i = 0; i < 4; ++i)
+        {
+            icon = this.IconArr.Get(i);
+            backicon = this.BackIconArr.Get(i);
+                
+            if(i < count)
+            {
+                icon.Sprite.Visible = true;
+                
+                if(i == this.CurrentSelection)
+                {
+                    backicon.Sprite.Color = this.ColorWhenSelected;
+                }
+                else
+                {
+                    backicon.Sprite.Color = this.ColorWhenUnselected;
+                }
+                
+                icon.Sprite.SpriteSource = this.SpriteSourceArr.Get(i);
+                icon.Sprite.Color = local Real4(1.0, 1.0, 1.0, 1.0);
+            }
+            else
+            {
+                icon.Sprite.Visible = false;
+                backicon.Sprite.Color = this.ColorWhenUnselected;
+            }
+        }
+        
+        this.BackgroundInvent.Sprite.Color = local Real4(0.7, 0.7, 0.7, 1.0);
+        
+        this.BeforeTime = this.NowTime;
+    }
+    
+    function AddItem(cog : Cog)
+    {
+        if(this.InventoryArr.Count < 4)
+        {
+            this.InventoryArr.Add(cog.ArchetypeName);
+            this.SpriteSourceArr.Add(cog.Sprite.SpriteSource);
+            
+            this.CurrentSelection = this.InventoryArr.LastIndex;
+            this.UpdateHUDInventoryIcon();
+        }
+    }
+    
+    function AddItem(cog : Cog, spriteSource : String)
+    {
+        if(this.InventoryArr.Count < 4)
+        {
+            this.InventoryArr.Add(cog.ArchetypeName);
+            this.SpriteSourceArr.Add(SpriteSource.Find(spriteSource));
+            
+            this.CurrentSelection = this.InventoryArr.LastIndex;
+            this.UpdateHUDInventoryIcon();
+        }
+    }
+    
+    function RemoveCurrentItem() : Boolean
+    {
+        if(this.CurrentSelection == -1 || this.CurrentSelection >= this.InventoryArr.Count)
+        {
+            return false; //Never remove any item because there isn't any item
+        }
+        else
+        {
+            
+            this.InventoryArr.RemoveAt(this.CurrentSelection);
+            this.SpriteSourceArr.RemoveAt(this.CurrentSelection);
+            
+            if(this.CurrentSelection > 0)
+            {
+                this.CurrentSelection -= 1;
+            }
+            
+            this.UpdateHUDInventoryIcon();
+            return true; //An item is removed
+        }
+    }
+    
+    function RetrieveCurrentItem() : String
+    {
+        if(this.CurrentSelection == -1)
+        {
+            return "null";
+        }
+        else
+        {
+            if(this.CurrentSelection < this.InventoryArr.Count)
+            {
+                return this.InventoryArr.Get(this.CurrentSelection);
+            }
+            else
+            {
+                return "null";
+            }
+        }
+    }
+    
+    function SetCurrentSelection(i : Integer)
+    {
+        if(i <= this.InventoryArr.LastIndex)
+        {
+            this.CurrentSelection = i;
+            this.UpdateHUDInventoryIcon();
+        }
+    }
+    
+    function SetNextSelection()
+    {
+        if(this.CurrentSelection < this.InventoryArr.LastIndex)
+        {
+            this.CurrentSelection += 1;
+            this.UpdateHUDInventoryIcon();
+        }
+    }
+    
+    function SetPrevSelection()
+    {
+        if(this.CurrentSelection > 0)
+        {
+            this.CurrentSelection -= 1;
+            this.UpdateHUDInventoryIcon();
+        }
+    }
+    
+    function SetLastSelection()
+    {
+        this.CurrentSelection = this.InventoryArr.LastIndex;
+        this.UpdateHUDInventoryIcon();
+    }
+    
+    function GetCount() : Integer
+    {
+        return this.InventoryArr.Count;
+    }
+}

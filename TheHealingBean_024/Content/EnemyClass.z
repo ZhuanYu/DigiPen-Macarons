@@ -1,0 +1,79 @@
+// Patrol States for the enemy
+enum EnemyState
+{
+    Patrol,
+    Chase,
+    Wait,
+    GoBack,
+    Dead,
+    Attack,
+    Dying,
+}
+
+class EnemyClass : CharacterClass
+{
+    // Second movement speed
+    var RunningSpeed : Real = 0;
+    // Detect if Player is in range
+    var DetectRange : Real = 0;
+    
+    // Starting position of the Enemy
+    var StartPos : Real3 = local Real3(0, 0, 0);
+    
+    // Chase
+    // Set if chasing player
+    var Chase : Boolean = false;
+    var AtEdge : Boolean = false;
+    var PlayerInSight : Boolean = false;
+    
+    var PatrolIncrement : Real = 0;
+    var PatrolDelay : Real = 0;
+    
+    var ChaseIncrement : Real = 0;
+    var ChaseDelay : Real = 0;
+    
+    var EnemyState : EnemyState = EnemyState.Wait;
+    
+    var Health : Real = 0;
+    
+    var DoDamage : Boolean = false;
+    
+    var Destroy : Boolean = false;
+    
+    // Fire Particle System
+    var Fire : Cog = null;
+    
+    var Character : Cog = null;
+    
+    //Flash Red
+    var DefaultTint : Real4 = local Real4(1,1,1,1);
+    var DamagedTint : Real4 = local Real4(1,0,0,1);
+    var FlashRedDelay : Real = 0.02;
+    var FlashRedIncrement : Real = 0;
+    var FlashRed : Boolean = true;
+    
+    constructor(character: Cog, size: Real3, centre: Real3, state: EnemyState, 
+    hitpoints: Real, patrolspeed: Real, chasespeed: Real, acceleration: Real, 
+    gravity: Real, jumpheight: Real, patroldelay: Real, chasedelay: Real,
+    chasedistance: Real) 
+    : base(character, size, centre, patrolspeed, acceleration,
+    gravity, jumpheight)
+    {
+        this.Character = character;
+        this.Health = hitpoints;
+        this.EnemyState = state;
+        this.RunningSpeed = chasespeed;
+        this.PatrolDelay = patroldelay;
+        this.ChaseDelay = chasedelay;
+        this.DetectRange = chasedistance;
+    }
+    
+    destructor()
+    {
+    }
+    
+    function UpdateAnimation(dt: Real)
+    {
+        this.Character.EnemyAnimation.UpdateSpriteAnimation(dt, this.EnemyState);
+    }
+}

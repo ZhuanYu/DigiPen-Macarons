@@ -1,0 +1,49 @@
+//Keeps track of the most current hit checkpoint.
+class CheckpointTracker : ZilchComponent
+{
+    var CurrentCheckpoint : Cog = null;
+    var PlayerStartPos : Real3 = local Real3(0,0,0);
+    
+    function Initialize(init : CogInitializer)
+    {
+        Zero.Connect(this.Owner, Events.CollisionStarted, this.OnCollisionStarted);
+        
+        this.PlayerStartPos = this.Owner.Transform.Translation;
+    }
+    
+    function Respawn()
+    {
+        //Set our translation to that of the last hit checkpoint
+        
+        if (this.CurrentCheckpoint != null)
+        {
+            this.Owner.Transform.Translation = local Real3(this.CurrentCheckpoint.Transform.Translation.X,this.CurrentCheckpoint.Transform.Translation.Y,this.Owner.Transform.Translation.Z);
+        }
+        else
+        {
+            this.Owner.Transform.Translation = this.PlayerStartPos;
+        }
+        this.Space.FindObjectByName("Camera").CameraController.IsActive = true;
+        this.Owner.Sprite.FlipX = false;
+        this.Owner.PlayerMainLogic.IsAlive = true;
+        this.Owner.PlayerMainLogic.Starting = true;
+    }
+    
+    function OnCollisionStarted(collisionEvent : CollisionEvent)
+    {
+        //Get the other object in the collision
+        var objectHit = collisionEvent.OtherObject;
+        
+        //If the object has a Checkpoint component
+        if(objectHit.ArchetypeName == "Checkpoint" && objectHit.CheckpointLogic.IsFinished == false)
+        {
+            //NOTE: Because we just store the last hit checkpoint, we could go
+            //to a previously hit checkpoint and respawn from there.  If you 
+            //don't want this behavior, think about adding an id or checkpoint
+            //number to the Checkpoint component.
+            
+            //Store it as the last hit checkpoint
+            this.CurrentCheckpoint = objectHit;
+        }
+    }
+}

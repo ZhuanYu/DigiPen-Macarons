@@ -1,0 +1,210 @@
+class HUDTutorialSecond : ZilchComponent
+{
+    var Player : Cog = null;
+    var Enemy1 : Cog = null;
+    
+    var LevelSettings : Cog = null;
+
+    var PlayerPressNext : Boolean = false;
+    var PlayerPickedUpObject : Boolean = false;
+    var PlayerPressNext2 : Boolean = false;
+    var PlayerPressNext3 : Boolean = false;
+    var PlayerPlacedDownObject : Boolean = false;
+    var PlayerBurnedEnemy1 : Boolean = false;
+    var PlayerPressNext4 : Boolean = false;
+    var PlayerPressNext5 : Boolean = false;
+    var PlayerPressNext6 : Boolean = false;
+    
+    var IsInstructionsUpdated : Boolean = false;
+    var IsReadyToCheckCondition : Boolean = false;
+    var InstructionsAppearDelay : Real = 2.0;
+    var InstructionsAppearIncrement : Real = 0;
+    var DelayDone : Boolean = false;
+    
+    var IsKeyboardControls : Boolean = true;
+    
+    [Property]
+    var TurnOn : Boolean = true;
+    
+    var Active : Boolean = true;
+    
+    constructor() : base()
+    {
+    }
+
+    function Initialize(init : CogInitializer)
+    {
+        this.Player = this.Space.FindObjectByName("Player");
+        this.Enemy1 = this.Space.FindObjectByName("PatrolEnemy1");
+
+        this.LevelSettings = this.Owner.HUDCreator.HUDSpace.LevelSettings;
+        this.LevelSettings.HUDInteractionLogic.SetInstructionsVisibility(false); //Hide instructions text at start
+        
+        if (this.TurnOn)
+        {
+            Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+        }
+    }
+
+    function UpdateReadyState()
+    {
+        this.IsReadyToCheckCondition = this.LevelSettings.HUDInteractionLogic.IsInactive();
+    }
+    
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        //Console.WriteLine(this.IsReadyToCheckCondition);
+        
+        if(this.Active == false)
+        {
+            return;
+        }
+        
+        if(this.DelayDone)
+        {
+            if(this.IsKeyboardControls != this.Player.PlayerMainLogic.IsKeyboardInput)
+            {
+                this.IsInstructionsUpdated = false;
+                this.IsKeyboardControls = this.Player.PlayerMainLogic.IsKeyboardInput;
+            }
+            
+            this.UpdateReadyState();
+            
+            if(this.PlayerPickedUpObject == false)
+            {
+                if(this.IsInstructionsUpdated == false)
+                { //If instructions are not updated...
+                    
+                    var output : String = "";
+                    
+                    output = "Pick up the sunflower.";
+                    
+                    this.LevelSettings.HUDInteractionLogic.SetInstructionsText(output);
+                    this.IsInstructionsUpdated = true;
+                }
+                else if(this.IsReadyToCheckCondition && this.Owner.InventoryLogic.RetrieveCurrentItem() == "Sunflower")
+                {
+                    this.PlayerPickedUpObject = true; //This set of instructions has been completed, move on...
+                    this.IsInstructionsUpdated = false; //The instructions displayed are now outdated.
+                }
+            }
+            else if(this.PlayerPressNext2 == false)
+            {
+                if(this.IsInstructionsUpdated == false)
+                { //If instructions are not updated...
+                    
+                    var output : String = "[INFO] An evil plant lies ahead. It will attack the bean if it sees it.";
+                    
+                    this.LevelSettings.HUDInteractionLogic.SetInstructionsText(output);
+                    this.IsInstructionsUpdated = true;
+                }
+                else if(this.IsReadyToCheckCondition && this.Player.PlayerMainLogic.InputDialog)
+                {
+                    this.PlayerPressNext2 = true; //This set of instructions has been completed, move on...
+                    this.IsInstructionsUpdated = false; //The instructions displayed are now outdated.
+                }
+            }
+            else if(this.PlayerPlacedDownObject == false)
+            {
+                if(this.IsInstructionsUpdated == false)
+                { //If instructions are not updated...
+                    
+                    var output : String = "";
+                    
+                    output = "Place the sunflower down.";
+                    
+                    this.LevelSettings.HUDInteractionLogic.SetInstructionsText(output);
+                    this.IsInstructionsUpdated = true;
+                }
+                else if(this.IsReadyToCheckCondition && this.Owner.InventoryLogic.RetrieveCurrentItem() == "null")
+                {
+                    this.PlayerPlacedDownObject = true; //This set of instructions has been completed, move on...
+                    this.IsInstructionsUpdated = false; //The instructions displayed are now outdated.
+                }
+            }
+            else if(this.PlayerBurnedEnemy1 == false)
+            {
+                if(this.IsInstructionsUpdated == false)
+                { //If instructions are not updated...
+                    
+                    var output : String = "";
+                    
+                    output = "Point it at the plant to burn it.";
+                    
+                    this.LevelSettings.HUDInteractionLogic.SetInstructionsText(output);
+                    this.IsInstructionsUpdated = true;
+                }
+                else if(this.Enemy1 == null)
+                {
+                    this.PlayerBurnedEnemy1 = true; //This set of instructions has been completed, move on...
+                    this.IsInstructionsUpdated = false; //The instructions displayed are now outdated.
+                }
+            }
+            else if(this.PlayerPressNext3 == false)
+            {
+                if(this.IsInstructionsUpdated == false)
+                { //If instructions are not updated...
+                    
+                    var output : String = "[INFO] You may not always have a sunflower with you to use.";
+                    
+                    this.LevelSettings.HUDInteractionLogic.SetInstructionsText(output);
+                    this.IsInstructionsUpdated = true;
+                }
+                else if(this.IsReadyToCheckCondition && this.Player.PlayerMainLogic.InputDialog)
+                {
+                    this.PlayerPressNext3 = true; //This set of instructions has been completed, move on...
+                    this.IsInstructionsUpdated = false; //The instructions displayed are now outdated.
+                }
+            }
+            else if(this.PlayerPressNext4 == false)
+            {
+                if(this.IsInstructionsUpdated == false)
+                { //If instructions are not updated...
+                    
+                    var output : String = "[INFO] In those cases, move when its back is facing the bean to sneak past.";
+                    
+                    this.LevelSettings.HUDInteractionLogic.SetInstructionsText(output);
+                    this.IsInstructionsUpdated = true;
+                }
+                else if(this.IsReadyToCheckCondition && this.Player.PlayerMainLogic.InputDialog)
+                {
+                    this.PlayerPressNext4 = true; //This set of instructions has been completed, move on...
+                    this.IsInstructionsUpdated = false; //The instructions displayed are now outdated.
+                }
+            }
+            else if(this.PlayerPressNext6 == false)
+            {
+                if(this.IsInstructionsUpdated == false)
+                { //If instructions are not updated...
+                    
+                    var output : String = "[END OF TUTORIAL - Press E to Close]";
+                    
+                    this.LevelSettings.HUDInteractionLogic.SetInstructionsText(output);
+                    this.IsInstructionsUpdated = true;
+                }
+                else if(this.IsReadyToCheckCondition && this.Player.PlayerMainLogic.InputDialog)
+                {
+                    this.PlayerPressNext6 = true; //This set of instructions has been completed, move on...
+                    this.IsInstructionsUpdated = false; //The instructions displayed are now outdated.
+                }
+            }
+            else
+            {
+                this.LevelSettings.HUDInteractionLogic.SetActive(false);
+                this.Active = false;
+                this.LevelSettings.HUDInteractionLogic.ResetCompleteText();
+            }
+        }
+        else
+        {
+            if(this.InstructionsAppearDelay > this.InstructionsAppearIncrement)
+            {
+                this.InstructionsAppearIncrement += event.Dt;
+            }
+            else
+            {
+                this.DelayDone = true;
+            }
+        }
+    }
+}
