@@ -1,0 +1,643 @@
+//MISSING DOCUMENTATION
+class PlayerMainLogic : ZilchComponent
+{
+    var MoveSpeed : Real = 250.0;
+    
+    var ClimbSpeed : Real = 50.0;
+
+    var PlayerHeadOffset : Real3 = Real3(0,0.35,0);
+    
+    var IsKeyboardInput : Boolean = true; //If not keyboard. use gamepad
+    var IsOnTree : Boolean = false;
+    var TreeMoveY: Real = 0; //0 for no, 1 for up, -1 for down
+    var IsAtPit : Boolean = false;
+    
+    var Up : Real3 = local Real3(0,1,0);
+    
+    var InputX : Integer = 0;
+    var InputY : Integer = 0;
+    var InputJump : Boolean = false;
+    var InputInteract : Boolean = false; //Used to interact with objects such as picking up of objects
+    var InputRotateInteract : Integer = 0; //Whether the interaction input is towards the left or right
+    var InputInventoryInteract : Integer = 0; //Indicating desired inventory slot (0-4)
+    var InputDialog : Boolean = false;
+    
+    var ItemPlacement : Cog = null; //Follows the player on a grid-basis, to allow grid placement of objects
+    var LevelSettings : Cog = null; //Access LevelSettings for TooltipText editing
+    var Goal : Cog = null;
+    var CurrentObjectBeingInteractedWith : Cog = null; //The object currently being interacted with
+    
+    [Property]
+    var IsAlive : Boolean = true;
+    
+    var HasComplete : Boolean = false;
+    
+    var Starting : Boolean = true;
+    
+    var RestartDelay : Real = 1;
+    
+    var RestartDelayIncrement : Real = 0.0;
+    
+    var EndDelay : Real = 1.5;
+    
+    var EndDelayIncrement : Real = 0.0;
+    
+    var StartDelay : Real = 1.5;
+    
+    var StartDelayIncrement : Real = 0.0;
+    
+    //Sound//
+    var SCJump: SoundCue = SoundCue.Find("SC_CharJump");
+    var SCWalk: SoundCue = SoundCue.Find("SC_CharWalk");
+    
+    var Speed : Real = 3;
+    [Property]
+    var Acceleration : Real = 18;
+    [Property]
+    var Gravity : Real = 22;
+    [Property]
+    var JumpHeight : Real = 12;
+    
+    var JumpDelay : Real = 0.05;
+    var JumpDelayIncrement : Real = 0.0;
+    
+    var CurrentSpeed : Real = 0;
+    var TargetSpeed : Real = 0;
+    var AmountToMove : Real3 = local Real3(0,0,0);
+    
+    var Pause : Boolean = false;
+    
+    var HUDBlur : Cog = null;
+    var HUDPauseBackground  : Cog = null;
+    var HUDEndButton : Cog = null;
+    var HUDRestartButton  : Cog = null;
+    var HUDPause : Cog = null;
+    
+    constructor() : base()
+    {
+    }
+
+    function Initialize(init : CogInitializer)
+    {
+        this.JumpDelayIncrement = this.JumpDelay;
+        
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+        Zero.Connect(Zero.Keyboard, Events.KeyUp, this.PauseGame);
+        
+        this.ItemPlacement = this.Space.FindObjectByName("ItemPlacement");
+        this.LevelSettings = this.Space.FindObjectByName("LevelSettings");
+        
+        this.HUDBlur = this.LevelSettings.HUDCreator.HUDSpace.FindObjectByName("HUD_Blur");
+        this.HUDPauseBackground = this.LevelSettings.HUDCreator.HUDSpace.FindObjectByName("HUD_PauseBackground");
+        this.HUDEndButton = this.LevelSettings.HUDCreator.HUDSpace.FindObjectByName("Click_MenuButton");
+        this.HUDRestartButton = this.LevelSettings.HUDCreator.HUDSpace.FindObjectByName("Click_RestartButton");
+        this.HUDPause = this.LevelSettings.HUDCreator.HUDSpace.FindObjectByName("HUD_Pause");
+        
+        this.Goal = this.Space.FindObjectByName("Goal");
+    }
+    
+    function PauseGame(keyEvent : KeyboardEvent) 
+    {
+        if (keyEvent.Key == Keys.P) 
+        {
+            this.Space.TimeSpace.TogglePause();
+            this.Pause = !this.Pause;
+        }
+        
+        this.HandlePause();
+    }
+
+    function OnLogicUpdate(event : UpdateEvent)
+    { 
+        if (this.IsAlive && !this.HasComplete && !this.Starting)
+        {
+            this.UpdateInputType();
+            this.UpdateMovement(event.Dt);
+            this.UpdateSprite();
+            this.UpdateCollisions();
+            this.UpdateInteraction();
+        }
+        else if (!this.IsAlive)
+        {
+            this.HandleReload(event.Dt);
+        }
+        else if (this.HasComplete)
+        {
+            this.HandleEnd(event.Dt);
+        }
+        else if (this.Starting)
+        {
+            this.HandleStart(event.Dt);
+        }
+    }
+    
+    function HandlePause()
+    {
+        if (this.Pause)
+        {
+            this.HUDBlur.Sprite.Visible = true;
+            this.HUDPauseBackground.Sprite.Visible = true;
+            this.HUDRestartButton.PauseButtonLogic.Button.Sprite.Visible = true;
+            this.HUDEndButton.PauseButtonLogic.Button.Sprite.Visible = true; 
+        }
+        else
+        {
+            this.HUDBlur.Sprite.Visible = false;
+            this.HUDPauseBackground.Sprite.Visible = false;
+            this.HUDRestartButton.PauseButtonLogic.Button.Sprite.Visible = false;
+            this.HUDEndButton.PauseButtonLogic.Button.Sprite.Visible = false;
+        }
+    }
+    
+    function HandleStart(dt : Real)
+    {
+        if(this.StartDelayIncrement < this.StartDelay)
+        {
+            this.Owner.PlayerAnimation.PlayerCharacterState = CharacterState.Idle;
+            this.AmountToMove.Y -= this.Gravity * dt;
+            this.Owner.PlayerPhysics.Move(this.AmountToMove * dt);
+            this.LevelSettings.HUDCreator.HUDSpace.LevelSettings.HUDInteractionLogic.UnfadeDeathFade(dt/this.RestartDelay);
+            this.StartDelayIncrement += dt;
+        }
+        else
+        {
+            this.StartDelayIncrement = 0;
+            this.Starting = false;
+            this.TargetSpeed = 0;
+            this.CurrentSpeed = 0;
+        }
+    }
+    
+    function HandleEnd(dt : Real)
+    {
+        if(this.EndDelayIncrement < this.EndDelay)
+        {
+            if (this.Goal.Transform.Translation.X >= this.Owner.Transform.Translation.X + 0.05 ||
+                this.Goal.Transform.Translation.X <= this.Owner.Transform.Translation.X - 0.05)
+            {
+                if (this.Owner.PlayerPhysics.Grounded)
+                {
+                    this.Owner.PlayerAnimation.PlayerCharacterState = CharacterState.Walking;
+                    
+                    if (this.Goal.Transform.Translation.X > this.Owner.Transform.Translation.X)
+                    {
+                        this.Owner.Sprite.FlipX = false;
+                        this.AmountToMove.X = 1 * this.Speed;
+                    }
+                    else
+                    {
+                        this.Owner.Sprite.FlipX = true;
+                        this.AmountToMove.X = -1 * this.Speed;
+                    }
+                }
+            }
+            else
+            {
+                this.Owner.PlayerAnimation.PlayerCharacterState = CharacterState.Idle;
+                this.AmountToMove.X = 0;
+                this.EndDelayIncrement += dt;
+            }
+            
+            this.AmountToMove.Y -= this.Gravity * dt;
+            this.Owner.PlayerPhysics.Move(this.AmountToMove * dt);
+        }
+        else
+        {
+            this.Space.LoadLevel(this.Goal.GoalLogic.NextLevel);
+        }
+    }
+    
+    function HandleReload(dt : Real)
+    {
+        if (this.RestartDelayIncrement < this.RestartDelay)
+        {
+            this.UpdateCollisionWithPit();
+            
+            if (this.AmountToMove.Y == 0 || this.IsAtPit)
+            {
+                this.Space.FindObjectByName("Camera").CameraController.IsActive = false;
+            }
+        
+            this.AmountToMove.X = 0;
+            this.AmountToMove.Y -= this.Gravity * dt;
+            
+            this.Owner.PlayerPhysics.Move(this.AmountToMove * dt);
+            this.RestartDelayIncrement += dt;
+            this.LevelSettings.HUDCreator.HUDSpace.LevelSettings.HUDInteractionLogic.FadeDeathFade(dt/this.RestartDelay);
+        }
+        else
+        {
+            this.Owner.PlayerAnimation.Reset();
+            this.RestartDelayIncrement = 0;
+            this.Owner.CheckpointTracker.Respawn();
+            this.LevelSettings.InventoryLogic.UpdateHUDInventoryIcon();
+        }
+    }
+    
+    function UpdateInputType()
+    {
+        //Console.WriteLine(this.IsKeyboardInput);
+        this.IsKeyboardInput = !this.Owner.GamepadInputLogic.IsGamepadConnected();
+    }
+    
+    function UpdateMovement(dt : Real)
+    {
+        //Move LEFT and RIGHT
+        if(this.IsKeyboardInput)
+        {
+            this.InputX = this.Owner.KeyboardInputLogic.InputX;
+        }
+        else
+        {
+            this.InputX = this.Owner.GamepadInputLogic.InputX;
+        }
+        
+        //Climb UP and DOWN
+        if(this.IsKeyboardInput)
+        {
+            this.InputY = this.Owner.KeyboardInputLogic.InputY;
+        }
+        else
+        {
+            this.InputY = this.Owner.GamepadInputLogic.InputY;
+        }
+        
+        //Jump
+        if(this.IsKeyboardInput)
+        {
+            this.InputJump = this.Owner.KeyboardInputLogic.InputJump;
+        }
+        else
+        {
+            this.InputJump = this.Owner.GamepadInputLogic.InputJump;
+        }
+        
+        //Input Dialog
+        if(this.IsKeyboardInput)
+        {
+            this.InputDialog = this.Owner.KeyboardInputLogic.InputDialog;
+        }
+        else
+        {
+            this.InputDialog  = this.Owner.GamepadInputLogic.InputDialog;
+        }
+        
+        if(this.InputX != 0)
+        {
+            this.Owner.PlayerAnimation.PlayerCharacterState = CharacterState.Walking;
+            if(this.Owner.SoundEmitter.IsPlaying() == false)
+            {
+                
+                this.Owner.SoundEmitter.PlayCue(this.SCWalk);
+            }
+        }
+        
+        if (this.Owner.PlayerPhysics.MoveStop)
+        {
+            this.TargetSpeed = 0;
+            this.CurrentSpeed = 0;
+        }
+        
+        // This one increases the speed gradually
+        // So the character does not move at max speed at the start
+        this.TargetSpeed = this.InputX * this.Speed;
+        this.CurrentSpeed = this.IncrementTowards(this.CurrentSpeed, this.TargetSpeed, 
+                                                    this.Acceleration, dt);
+
+        if(this.IsOnTree)
+        {
+            if(this.InputY == 1)
+            {
+                this.Owner.PlayerAnimation.PlayerCharacterState = CharacterState.ClimbingUp;
+                this.AmountToMove.Y = 3;
+            }
+            else if(this.InputY == -1)
+            {
+                this.Owner.PlayerAnimation.PlayerCharacterState = CharacterState.ClimbingDown;
+                this.AmountToMove.Y = -3;
+            }
+            else
+            {
+                this.Owner.PlayerAnimation.PlayerCharacterState = CharacterState.Clinging;
+                this.AmountToMove.Y = 0;
+                
+                this.AmountToMove.Y += this.TreeMoveY;
+            }
+        }
+        else
+        {
+            // Jumping
+            if (this.Owner.PlayerPhysics.Grounded)
+            {
+                this.AmountToMove.Y = 0;
+                
+                if (this.InputJump && !this.Owner.PlayerPhysics.HitTop)
+                {
+                    if(this.JumpDelayIncrement > this.JumpDelay)
+                    {
+                        this.Owner.PlayerAnimation.PlayerCharacterState = CharacterState.Jumping;
+                        if(this.Owner.SoundEmitter.IsPlaying() == false)
+                        {
+                            this.Owner.SoundEmitter.PlayCue(this.SCJump);
+                        }
+                        this.AmountToMove.Y = this.JumpHeight;
+                        
+                        this.JumpDelayIncrement = 0;
+                    }
+                    else
+                    {
+                        this.JumpDelayIncrement += dt;
+                    }
+                }
+            }
+            else
+            {
+                this.Owner.PlayerAnimation.PlayerCharacterState = CharacterState.Falling;
+            }
+        }
+        
+        if(this.Owner.PlayerPhysics.Grounded && !this.IsOnTree
+        && this.InputX == 0 && this.InputY == 0)
+        {
+            this.Owner.PlayerAnimation.PlayerCharacterState = CharacterState.Idle;
+        }
+        
+        if (this.Owner.PlayerPhysics.HitTop && !this.IsOnTree)
+        {
+            this.Owner.PlayerAnimation.PlayerCharacterState = CharacterState.Jumping;
+        }
+        
+        // Set the amount to move the character
+        this.AmountToMove.X = this.CurrentSpeed;
+        if (!this.IsOnTree)
+        {
+            this.AmountToMove.Y -= this.Gravity * dt;
+        }
+        //Console.WriteLine(this.AmountToMove.X);
+        this.Owner.PlayerPhysics.Move(this.AmountToMove * dt);
+    }
+    
+    function IncrementTowards(current : Real, target : Real, acc : Real, dt : Real) : Real
+    {
+        if (current == target)
+        {
+            return current;
+        }
+        else
+        {
+            var dir = target - current;
+            
+            if (dir >= 0)
+            {
+                dir = 1;
+            }
+            else
+            {
+                dir = -1;
+            }
+            
+            if (this.Owner.PlayerPhysics.Grounded)
+            {
+                current += acc * dt * dir;
+            }
+            else // In Air
+            {
+                current += acc * 0.5 * dt * dir;
+            }
+            
+            var dir2 = target - current;
+            
+            if (dir2 >= 0)
+            {
+                dir2 = 1;
+            }
+            else
+            {
+                dir2 = -1;
+            }
+            
+            if (dir == dir2)
+            {
+                return current;
+            }
+            else
+            {
+                return target;
+            }
+        }
+    }
+    
+    function UpdateSprite()
+    {
+        if(this.InputX == 1)
+        {
+            this.Owner.Sprite.FlipX = false;
+        }
+        else if(this.InputX == -1)
+        {
+            this.Owner.Sprite.FlipX = true;
+        }
+    }
+    
+    function KillPlayer()
+    {
+        this.IsAlive = false;
+        this.Owner.PlayerAnimation.PlayerCharacterState = CharacterState.Dying;
+    }
+
+    function UpdateCollisions()
+    {
+        this.UpdateCollisionWithSunFlowers();
+        this.UpdateCollisionWithTrees();
+        this.UpdateCollisionWithPit();
+        this.UpdateCollisionWithRoses();
+        this.UpdateCollisionwithEnemies();
+    }
+    
+    function UpdateCollisionWithSunFlowers()
+    {
+        this.CurrentObjectBeingInteractedWith = null;
+        
+        foreach(var contact in this.Owner.BoxCollider.Contacts)
+        {
+            if(contact.OtherObject.ArchetypeName == "Sunflower")
+            {
+                this.CurrentObjectBeingInteractedWith = contact.OtherObject;
+                break;
+            }
+        }
+    }
+    
+    function UpdateCollisionWithTrees()
+    {
+        this.IsOnTree = false;
+        this.TreeMoveY = 0;
+        
+        foreach(var contact in this.Owner.BoxCollider.Contacts)
+        {
+            if(contact.OtherObject.ArchetypeName == "Tree")
+            {
+                if(this.InputY != 0 || !this.Owner.PlayerPhysics.Grounded)
+                {
+                    this.IsOnTree = true;
+                }
+                
+                this.TreeMoveY = contact.OtherObject.TreeLogic.TreeMoving;
+            }
+            else if(contact.OtherObject.ArchetypeName == "Vine")
+            {
+                if(contact.OtherObject.VineLogic.IsSpikey)
+                {
+                    this.KillPlayer();
+                }
+                else
+                {
+                    if(this.InputY != 0 || !this.Owner.PlayerPhysics.Grounded)
+                    {
+                        this.IsOnTree = true;
+                    }
+                }
+            }
+        }
+    }
+    
+    function UpdateCollisionWithPit()
+    {
+        foreach(var contact in this.Owner.BoxCollider.Contacts)
+        {
+            
+            if(contact.OtherObject.ArchetypeName == "Pit")
+            {
+                this.IsAtPit = true;
+                this.KillPlayer();
+            }
+        }
+    }
+    
+    function UpdateCollisionWithRoses()
+    {
+        foreach(var contact in this.Owner.BoxCollider.Contacts)
+        {
+            
+            if(contact.OtherObject.ArchetypeName == "Checkpoint")
+            {
+                this.CurrentObjectBeingInteractedWith = contact.OtherObject;
+                this.CurrentObjectBeingInteractedWith.CheckpointLogic.SelectCheckpoint();
+                break;
+            }
+        }
+    }
+    
+    function UpdateCollisionwithEnemies()
+    {
+        foreach(var contact in this.Owner.BoxCollider.Contacts)
+        {
+            if(contact.OtherObject.ArchetypeName == "PatrolEnemy")
+            {
+                this.CurrentObjectBeingInteractedWith = contact.OtherObject;
+                if (this.CurrentObjectBeingInteractedWith.PatrolEnemyLogic.PatrolEnemy.EnemyState 
+                    == EnemyState.Dying || 
+                    this.CurrentObjectBeingInteractedWith.PatrolEnemyLogic.PatrolEnemy.DoDamage)
+                {
+                    this.KillPlayer();
+                }
+            }
+            else if(contact.OtherObject.ArchetypeName == "FollowEnemy")
+            {
+                this.CurrentObjectBeingInteractedWith = contact.OtherObject;
+                if (this.CurrentObjectBeingInteractedWith.FollowEnemyLogic.FollowEnemy.EnemyState
+                    == EnemyState.Attack &&
+                    this.CurrentObjectBeingInteractedWith.FollowEnemyLogic.FollowEnemy.DoDamage)
+                {
+                    this.KillPlayer();
+                }
+            }
+        }
+    }
+    
+    function UpdateInteraction()
+    {
+        //Get interaction input
+        if(this.IsKeyboardInput)
+        {
+            var inputInventoryInteract = this.Owner.KeyboardInputLogic.InputInventoryInteract;
+            
+            if(inputInventoryInteract != -1)
+            {
+                this.InputInventoryInteract = inputInventoryInteract;
+                this.LevelSettings.InventoryLogic.SetCurrentSelection(this.InputInventoryInteract);
+            }
+            
+            this.InputRotateInteract = this.Owner.KeyboardInputLogic.InputRotateInteract;
+            this.InputInteract = this.Owner.KeyboardInputLogic.InputInteract;
+        }
+        else
+        {
+            this.InputInventoryInteract = this.Owner.GamepadInputLogic.InputInventoryInteract;
+            
+            if(this.InputInventoryInteract == 1)
+            {
+                this.LevelSettings.InventoryLogic.SetNextSelection();
+            }
+            else if(this.InputInventoryInteract == -1)
+            {
+                this.LevelSettings.InventoryLogic.SetPrevSelection();
+            }
+            
+            this.InputRotateInteract = this.Owner.GamepadInputLogic.InputRotateInteract;
+            this.InputInteract = this.Owner.GamepadInputLogic.InputInteract;
+        }
+        
+        //Update tooltip & handle interaction input
+        //this.LevelSettings.HUDTooltipPickup.SetTooltipVisibility(false);
+        
+        if(this.CurrentObjectBeingInteractedWith == null)
+        {
+            if(this.ItemPlacement.ItemPlacementLogic.IsValidPlacement && !this.IsOnTree && this.InputInteract)
+            {
+                if(this.LevelSettings.InventoryLogic.RemoveCurrentItem())
+                {
+                    this.Space.CreateAtPosition(Archetype.Find("Sunflower"), this.ItemPlacement.Transform.Translation);
+                }
+            }
+        }
+        else
+        {
+            if(this.CurrentObjectBeingInteractedWith.ArchetypeName == "Sunflower")
+            {
+                //Show tooltip
+                //this.LevelSettings.HUDTooltipPickup.SetTooltipVisibility(true);
+                
+                //Update tooltip
+                if(this.IsKeyboardInput)
+                {
+                    //this.LevelSettings.HUDTooltipPickup.SetTooltipText("Press E to pick up & Z/C to rotate");
+                }
+                else
+                {
+                    //this.LevelSettings.HUDTooltipPickup.SetTooltipText("Press X to pick up & right thumbstick to rotate");
+                }
+                
+                //Allow player to interact with the object
+                if(this.InputInteract)
+                {
+                    if(this.CurrentObjectBeingInteractedWith.SunflowerLogic != null)
+                    {
+                        this.CurrentObjectBeingInteractedWith.SunflowerLogic.InteractWith();
+                        this.LevelSettings.InventoryLogic.SetLastSelection();
+                    }
+                }
+                
+                //ALlow player to rotate the sunflower
+                if(this.InputRotateInteract == -1)
+                {
+                    this.CurrentObjectBeingInteractedWith.SunflowerLogic.RotateLeft();
+                }
+                else if(this.InputRotateInteract == 1)
+                {
+                    this.CurrentObjectBeingInteractedWith.SunflowerLogic.RotateRight();
+                }
+            }
+        }
+    }
+}

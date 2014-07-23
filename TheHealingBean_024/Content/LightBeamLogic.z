@@ -1,0 +1,79 @@
+//Author: Evan Tay
+//Date: 27/5/14
+//Title: Light Beam Logic [DEPRECATED]
+//Description: This script contains the logic needed for the light beam mechanic. It checks if the light
+//beam is fully extended in the forward direction, and extends in that direction if it isn't.
+//This script is deprecated, use LightBeamLogic2. LightBeamLogic2 uses RayCasting for more efficient and
+//clean scaling of the lightbeam.
+class LightBeamLogic : ZilchComponent
+{
+    [Property]
+    var LengthIncrementalRate : Real = 32; //The rate at which the light beam extends
+    
+    var LightFullyExtended : Boolean = false; //Whether it is fully extended - did it reach a wall yet?
+    var Angle : Real = 0; //The angle at which the beam is pointing towards in RADIANS
+    
+    constructor() : base()
+    {
+    }
+
+    function Initialize(init : CogInitializer)
+    {
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+    }
+
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        if(this.LightFullyExtended)
+        { //If fully extended, no need to run any update code
+            return;
+        }
+        
+        this.ExtendInForwardDirection(event.Dt); //Extend in forward direction if not fully extended
+        
+        this.CheckIfFullyExtended(); //Check if it is fully extended, if it is then flag that it is
+    }
+    
+    function ExtendInForwardDirection(dt : Real)
+    {
+        //Calculate the length in which the light beam will increase by
+        var lengthIncrease : Real = this.LengthIncrementalRate * dt;
+        
+        //Apply the length increase by scaling the light beam
+        this.Owner.Transform.Scale += local Real3(lengthIncrease,0,0);
+        
+        //As the object scales in the forward direction, we need to move it by 1/2 the amount it scales
+        //in the same direction. This is because when an object scales, it scales from the centre instead of
+        //in a forward direction.
+        
+        //Phythagoras Theorem - Used to calculate the X and Y translation we have to translate it by
+        var hypotenuse : Real = lengthIncrease/2;
+        var opposite : Real = Math.Sin(this.Angle) * hypotenuse; //Get the X translation
+        var adjacent : Real = Math.Cos(this.Angle) * hypotenuse; //Get the Y translation
+        
+        this.Owner.Transform.Translation += local Real3(opposite, adjacent, 0);
+    }
+    
+    function CheckIfFullyExtended()
+    {
+        foreach(var contactHolder in this.Owner.BoxCollider.Contacts)
+        {
+            if(contactHolder.OtherObject.ArchetypeName == "DefaultTile")
+            {
+                this.Owner.RigidBody.ForceAsleep();
+                this.LightFullyExtended = true;
+            }
+        }
+    }
+    
+    function SetAngle(angle : Real)
+    {
+        this.Angle = Math.ToRadians(angle);
+        this.Owner.Transform.RotateAnglesWorld(Real3(0,0,-this.Angle));
+    }
+    
+    function SetTranslation(translation : Real3)
+    {
+        this.Owner.Transform.Translation = translation;
+    }
+}

@@ -1,0 +1,67 @@
+class VineLogic : ZilchComponent
+{
+    var IsBeingBurned: Boolean = false;
+    var IsSpikey: Boolean = true;
+    
+    var VineTransitionDelay : Real = 2.0;
+    var VineTransitionIncrement : Real = 0;
+    
+    var IsFinished : Boolean = false;
+    
+    var ThornsPE : Cog = null;
+    
+    var SparklePE : Cog = null;
+    
+    [Property]
+    var SparkleOffset : Real3 = local Real3(0,0,0);
+    [Property]
+    var SparkleScale : Real3 = local Real3(0.4,3.5,1);
+        
+    function Initialize(init : CogInitializer)
+    {
+        var particleEffectPos = this.Owner.Transform.Translation + this.SparkleOffset;
+        
+        this.SparklePE = this.Space.CreateAtPosition(Archetype.Find("TreeParticleEffect"), particleEffectPos);
+
+        this.SparklePE.Transform.Scale = this.SparkleScale;
+        
+        this.ThornsPE = this.Space.CreateAtPosition(Archetype.Find("VineParticleEffect"),this.Owner.Transform.Translation);
+        
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+    }
+    
+    function RemoveSpikes()
+    {
+        this.IsBeingBurned = true;
+    }
+    
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        if(this.IsFinished)
+        {
+            return;
+        }
+        
+        this.SparklePE.SphericalParticleEmitter.Active = !this.IsBeingBurned;
+        this.ThornsPE.SphericalParticleEmitter.Active = this.IsBeingBurned;
+        
+        if(this.IsBeingBurned)
+        {
+            if(this.VineTransitionIncrement > this.VineTransitionDelay)
+            {
+                this.Owner.Sprite.CurrentFrame = 3;
+                this.IsFinished = true;
+                this.IsSpikey = false;
+                this.SparklePE.SphericalParticleEmitter.Active = false;
+                this.ThornsPE.SphericalParticleEmitter.Active = false;
+            }
+            else
+            {
+                this.VineTransitionIncrement += event.Dt;
+                this.Owner.Sprite.CurrentFrame = Math.Floor(3 * this.VineTransitionIncrement/this.VineTransitionDelay) as Integer;            
+            }
+        }
+        
+        this.IsBeingBurned = false;
+    }
+}

@@ -1,0 +1,8 @@
+TextContent = 
+{
+	ZilchScriptBuilder = 
+	{
+		string Name = "VineLogic",
+		uint64 ResourceId = 5397aa22e1dd41df,
+	},
+},

@@ -1,0 +1,20 @@
+ImageContent = 
+{
+	SpriteSourceBuilder = 
+	{
+		string Name = "SunBeam",
+		uint64 ResourceId = 538ed8a58c31ab5c,
+		uint64 AtlasId = 5274cf95e4a661fd,
+		uint FrameSizeX = 32,
+		uint FrameSizeY = 8,
+		uint FrameCount = 1,
+		float FrameDelay = 0.0833333,
+		float OriginX = 16,
+		float OriginY = 4,
+		float PixelsPerUnit = 64,
+		bool Smoothing = true,
+		bool Looping = true,
+		Vec4 Slices = [0, 1, 0, 1],
+		SpriteFill Fill = NineSlice,
+	},
+},

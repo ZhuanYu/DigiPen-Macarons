@@ -1,0 +1,7 @@
+ContentLibrary = 
+{
+	string Name = "TheHealingBean_3C",
+	uint64 LibraryId = 53a484b1a2d4d946,
+	string SourceControlType = "",
+	bool ReadOnly = false,
+},

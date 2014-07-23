@@ -1,0 +1,8 @@
+TextContent = 
+{
+	ZilchScriptBuilder = 
+	{
+		string Name = "MovingMist",
+		uint64 ResourceId = 534917ab63fd06fa,
+	},
+},

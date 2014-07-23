@@ -1,0 +1,20 @@
+ImageContent = 
+{
+	SpriteSourceBuilder = 
+	{
+		string Name = "UI-borderonly",
+		uint64 ResourceId = 538ed35b660dc51f,
+		uint64 AtlasId = 5274cf95e4a661fd,
+		uint FrameSizeX = 675,
+		uint FrameSizeY = 190,
+		uint FrameCount = 1,
+		float FrameDelay = 0.0833333,
+		float OriginX = 337,
+		float OriginY = 95,
+		float PixelsPerUnit = 64,
+		bool Smoothing = true,
+		bool Looping = true,
+		Vec4 Slices = [0, 0, 0, 0],
+		SpriteFill Fill = Stretch,
+	},
+},

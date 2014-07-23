@@ -1,0 +1,114 @@
+class MenuButtonLogic : ZilchComponent
+{
+    var Button : Cog = null;
+    var LevelSettings : Cog = null;
+    var OverButton : Boolean = false;
+    var UpButton : Boolean = false;
+    
+    [Property]
+    var NextLevel : Level = null;
+    
+    function Initialize(init : CogInitializer)
+    {
+        Zero.Connect(this.Owner, Events.MouseEnter, this.OnMouseEnter);
+        Zero.Connect(this.Owner, Events.MouseExit, this.OnMouseExit);
+        Zero.Connect(this.Owner, Events.MouseDown, this.OnMouseDown);
+        Zero.Connect(this.Owner, Events.MouseUp, this.OnMouseUp);
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+        
+        this.LevelSettings = this.Space.FindObjectByName("LevelSettings");
+
+        if (this.Owner.Name == "Click_StartButton")
+        {
+            this.Button = this.Space.FindObjectByName("StartButton"); 
+        }
+        else if(this.Owner.Name == "Click_OptionButton")
+        {
+            this.Button = this.Space.FindObjectByName("OptionButton");
+        }
+        else if(this.Owner.Name == "Click_CreditButton")
+        {
+            this.Button = this.Space.FindObjectByName("CreditButton");
+        } 
+        else if(this.Owner.Name == "Click_QuitButton")
+        {
+            this.Button = this.Space.FindObjectByName("QuitButton");
+        }
+        else if(this.Owner.Name == "Click_BackButton")
+        {
+            this.Button = this.Space.FindObjectByName("BackButton");
+        } 
+    }
+    
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        if (this.LevelSettings.MenuLogic.FadeEffect.MenuFadeLogic.DoFade 
+            || !this.Button.Sprite.Visible)
+        {
+            return;
+        }
+        
+        if (!this.LevelSettings.MenuLogic.FadeEffect.MenuFadeLogic.DounFade && this.OverButton)
+        {
+            this.Button.Sprite.CurrentFrame = 1;
+        }
+    }
+
+    function OnMouseUp(event : ViewportMouseEvent)
+    {
+        if (!this.Button.Sprite.Visible)
+        {
+            return;
+        }
+        
+        if (!this.LevelSettings.MenuLogic.FadeEffect.MenuFadeLogic.DounFade 
+            && !this.LevelSettings.MenuLogic.FadeEffect.MenuFadeLogic.DoFade)
+        {
+            this.Button.Sprite.CurrentFrame = 0;
+            this.UpButton = true;
+            this.OverButton = false;
+        }
+    }
+
+    function OnMouseDown(event : ViewportMouseEvent)
+    {
+        if (!this.Button.Sprite.Visible)
+        {
+            return;
+        }
+        
+        this.OverButton = false;
+        
+        if (!this.LevelSettings.MenuLogic.FadeEffect.MenuFadeLogic.DounFade 
+            && !this.LevelSettings.MenuLogic.FadeEffect.MenuFadeLogic.DoFade)
+        {
+            this.Button.Sprite.CurrentFrame = 2;
+        }
+    }
+
+    function OnMouseExit(event : ViewportMouseEvent)
+    {
+        if (!this.Button.Sprite.Visible)
+        {
+            return;
+        }
+        
+        this.OverButton = false;
+        
+        if (!this.LevelSettings.MenuLogic.FadeEffect.MenuFadeLogic.DounFade 
+            && !this.LevelSettings.MenuLogic.FadeEffect.MenuFadeLogic.DoFade)
+        {
+            this.Button.Sprite.CurrentFrame = 0;
+        }
+    }
+
+    function OnMouseEnter(event : ViewportMouseEvent)
+    {
+        if (!this.Button.Sprite.Visible)
+        {
+            return;
+        }
+        
+        this.OverButton = true;
+    }
+}

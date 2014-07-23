@@ -1,0 +1,93 @@
+Cog = 
+{
+	LinkId = 
+	{
+		uint Id = 1,
+	},
+	Named = 
+	{
+		string Name = "Player",
+	},
+	Archetyped = 
+	{
+		string Name = "53a26fd22ff3f749:Player",
+	},
+	Transform = 
+	{
+		Vec3 Translation = [-11.5, -0.4, 0],
+		Vec3 Scale = [1, 1, 1],
+		Quat Rotation = [0, 0, 0, 1],
+	},
+	Sprite = 
+	{
+		string SpriteSource = "539ed421d715a206:SS_Bean",
+		bool FlipX = false,
+		bool FlipY = false,
+		Vec4 Color = [1, 1, 1, 1],
+		bool Visible = true,
+		bool OnTop = false,
+		bool AnimationActive = false,
+		float AnimationSpeed = 0.8,
+		uint StartFrame = 0,
+		BlendMode BlendMode = Alpha,
+		SpriteGeometryMode GeometryMode = ZPlane,
+		string SpriteLayer = "52ad5fa30d7fcd50:DefaultSpriteLayer",
+	},
+	KeyboardInputLogic = 
+	{
+	},
+	GamepadInputLogic = 
+	{
+		int GamepadIndex = 0,
+		float DeadZone = 0.2,
+	},
+	PlayerMainLogic = 
+	{
+		bool IsAlive = true,
+		float RestartDelay = 2,
+		float Speed = 3,
+		float Acceleration = 18,
+		float Gravity = 25,
+		float JumpHeight = 12,
+	},
+	PlayerAnimation = 
+	{
+	},
+	SoundEmitter = 
+	{
+		bool StartPlaying = false,
+		int ExtraPriority = 0,
+		string CueName = "53bd577d604696e2:BGM_Darkenin",
+		float Volume = 1,
+		float Pitch = 1,
+		bool Positional = false,
+	},
+	PlayerPhysics = 
+	{
+	},
+	BoxCollider = 
+	{
+		bool Ghost = false,
+		bool SendsMessages = true,
+		bool Seamless = false,
+		string MaterialName = "4faa6050b8692851:HardMaterial",
+		string SerializedGroupName = "4e740859314e5515:DefaultGroup",
+		Vec3 Offset = [0, 0, 0],
+		Vec3 Size = [0.35, 0.45, 0.5],
+	},
+	RigidBody = 
+	{
+		bool Static = false,
+		bool Asleep = false,
+		bool Kinematic = false,
+		bool RotationLocked = true,
+		bool Mode2D = true,
+		bool AllowSleep = true,
+		bool Inherit2DMode = true,
+		Vec3 Velocity = [0, 0, 0],
+		Vec3 AngularVelocity = [0, 0, 0],
+	},
+	CheckpointTracker = 
+	{
+	},
+},

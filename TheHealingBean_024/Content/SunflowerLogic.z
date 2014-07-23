@@ -1,0 +1,519 @@
+//Author: Evan Tay
+//Date: 27/5/14
+//Title: Sunflower Logic
+//Description: This script contains the logic needed for the Sunflower light beam mechanic. 
+//It stores the light beam it emits, the angle at which it is directed at and whether it is being adjusted or fully extended.
+class SunflowerLogic : ZilchComponent
+{
+    var Player : Cog = null;
+    var MaxPowerupDistance : Real = 8.0; //The range in which the player can power up the sunflower
+    var MaxCastDistance : Real = 18.0;
+    
+    var PlayerMinDistance : Real =1; //Minimum distance to draw the line to player
+    
+    //For the line to the player
+    var HeadSize : Real = 0;
+    var DrawColorForPlayerBeam : Real4 = Real4(0.0,1.0,0.0,1.0);
+    var DrawColorForLightBeam : Real4 = Real4(1.0,1.0,0.0,1.0);
+    
+    var OnTop : Boolean = true;
+    
+    var ObjInContact : Cog = null;
+    var IsTree : Boolean = false;
+    var IsEnemy : Boolean = false;
+    
+    var RayBeam : Ray = Ray();
+    var LightBeamAngle : Real = 90;
+    var LightBeamAngleInRadians : Real = 0;
+    
+    [Property]
+    var LightBeamRotationSpeed : Real = 6.0;
+    var LightBeamRotationSpeedInRadians : Real = 0;
+    
+    var LightBeamOriginTranslation : Real3 = Real3(0,0,0);
+    var EndPosition : Real3 = Real3(0,0,0);
+    
+    var LightBeamSetup : Boolean = false;
+    
+    var IsActive : Boolean = false;
+    
+    //The player needs to be nearby to power the sunflower. To prevent flickering as a result
+    //of the player being at the edge of the distance required to activate the sunflower, a
+    //timer is added such that the player must be nearby for 1 second before the sunflower
+    //activates.
+    var PlayerNearbyDelayInterval : Real = 0.4;
+    var PlayerNearbyDelay : Real = 0;
+    
+    //Graphics//
+    var SunflowerFlower: Cog = null;
+    var SunflowerBack : Cog = null;
+    var SunflowerParticleEffect: Cog = null;
+    
+    var SunflowerBeam : Cog = null;
+    var BeamMaxAlpha : Real = 1.0;
+    var BeamMinAlpha : Real = 0.6;
+    var BeamAlpha : Real = 1.0;
+    var BeamAlphaChangeSpeed : Real = 0.015;
+    var BeamAlphaSwitch : Boolean = false;
+    
+    var PlayerBeam : Cog = null;
+    var BeamMinAlpha2 : Real = 0.0;
+    var BeamAlpha2 : Real = 1.0;
+    var BeamAlphaChangeSpeed2: Real = 0.0075;
+    var PlayerBeamActive : Boolean = false;
+    
+    constructor() : base()
+    {
+    }
+    
+    function Initialize(init : CogInitializer)
+    {
+        this.Player = this.Space.FindObjectByName("Player");
+        
+        this.LightBeamOriginTranslation = this.Owner.Transform.Translation;
+        
+        this.LightBeamAngleInRadians = Math.ToRadians(this.LightBeamAngle);
+        
+        this.LightBeamRotationSpeedInRadians = Math.ToRadians(this.LightBeamRotationSpeed);
+        
+        var sunflowerPos = this.Owner.Transform.Translation - local Real3(0,0,0.1);
+        
+        this.SunflowerBack = this.Space.CreateAtPosition(Archetype.Find("SunflowerBack"), sunflowerPos);
+        
+        sunflowerPos += local Real3(0,0,0.2);
+        
+        this.SunflowerFlower = this.Space.CreateAtPosition(Archetype.Find("SunflowerFlower"), sunflowerPos);
+         
+        this.SunflowerParticleEffect = this.Space.CreateAtPosition(Archetype.Find("SunflowerParticleEffect"), sunflowerPos);
+        
+        Zero.Connect(this.Space,Events.LogicUpdate, this.OnLogicUpdate);
+        
+        Zero.Connect(this.Owner, Events.CollisionStarted, this.OnCollisionStarted);
+        
+        Zero.Connect(this.Owner, Events.CollisionEnded, this.OnCollisionEnded);
+    }
+    
+    function OnCollisionStarted(collisionEvent : CollisionEvent)
+    {
+        if(!this.Player.PlayerMainLogic.IsAlive || this.Player.PlayerMainLogic.HasComplete
+            || this.Player.PlayerMainLogic.Starting)
+        {
+            return;
+        }
+        
+        //Get the other object in the collision
+        var currentObjectBeingInteractedWith = collisionEvent.OtherObject;
+        
+        if(currentObjectBeingInteractedWith.ArchetypeName == "Player")
+        {
+            this.SunflowerBack.Sprite.BlendMode = 1;
+            this.SunflowerFlower.Sprite.BlendMode = 1;
+            this.Owner.Sprite.BlendMode = 1;
+
+        }
+    }
+    
+    function OnCollisionEnded(collisionEvent : CollisionEvent)
+    {
+        if(!this.Player.PlayerMainLogic.IsAlive || this.Player.PlayerMainLogic.HasComplete
+            || this.Player.PlayerMainLogic.Starting)
+        {
+            return;
+        }
+        
+        //Get the other object in the collision
+        var currentObjectBeingInteractedWith = collisionEvent.OtherObject;
+        
+        if(currentObjectBeingInteractedWith.ArchetypeName == "Player")
+        {
+            this.SunflowerBack.Sprite.BlendMode = 0;
+            this.SunflowerFlower.Sprite.BlendMode = 0;
+            this.Owner.Sprite.BlendMode = 0;
+        }
+    }
+    
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        if(!this.Player.PlayerMainLogic.IsAlive || this.Player.PlayerMainLogic.HasComplete
+            || this.Player.PlayerMainLogic.Starting)
+        {
+            return;
+        }
+        
+        var dist : Real = this.GetDistanceFromPlayer();
+        
+        //If the player is right next to the sunflower OR the player is within range & unblocked
+        if(dist < this.PlayerMinDistance || dist < this.MaxPowerupDistance && (dist < 0.2 || this.DoRaycastToCheckIfUnblocked()))
+        {
+            if(this.IsActive == false)
+            {
+                if(this.PlayerNearbyDelay > this.PlayerNearbyDelayInterval)
+                {
+                    this.IsActive = true;
+                    this.ResetLightBeam();
+                    this.PlayerNearbyDelay = 0;
+                    this.PlayerBeamActive = true;
+                    this.BeamAlpha2 = 1.0;
+                }
+                else
+                {
+                    this.PlayerNearbyDelay += event.Dt;
+                }
+            }
+        }
+        else
+        {
+            this.IsActive = false;
+            this.PlayerNearbyDelay = 0;
+            this.PlayerBeamActive = false;
+        }
+            
+        if(this.IsActive)
+        {
+            if(dist > this.PlayerMinDistance)
+            {
+                this.DrawLineToPlayer();
+            }
+        
+            if(this.BeamAlphaSwitch)
+            {
+                if(this.BeamAlpha < this.BeamMaxAlpha)
+                {
+                    this.BeamAlpha += this.BeamAlphaChangeSpeed;
+                    
+                    if(this.BeamAlpha > this.BeamMaxAlpha)
+                    {
+                        this.BeamAlpha = this.BeamMaxAlpha;
+                    }
+                }
+                else
+                {
+                    this.BeamAlphaSwitch = !this.BeamAlphaSwitch;
+                }
+            }
+            else
+            {
+                if(this.BeamAlpha > this.BeamMinAlpha)
+                {
+                    this.BeamAlpha -= this.BeamAlphaChangeSpeed;
+                    
+                    if(this.BeamAlpha < this.BeamMinAlpha)
+                    {
+                        this.BeamAlpha = this.BeamMinAlpha;
+                    }
+                }
+                else
+                {
+                    this.BeamAlphaSwitch = !this.BeamAlphaSwitch;
+                }
+            }
+
+            if(this.PlayerBeamActive)
+            {
+                if(this.BeamAlpha2 > this.BeamMinAlpha2)
+                {
+                    this.BeamAlpha2 -= this.BeamAlphaChangeSpeed2;
+                    
+                    if(this.BeamAlpha2 < this.BeamMinAlpha2)
+                    {
+                        this.BeamAlpha2 = this.BeamMinAlpha2;
+                        this.PlayerBeamActive = false;
+                    }
+                }
+            }
+            
+            this.ResetLightBeam();
+        }
+        
+        this.SunflowerParticleEffect.SphericalParticleEmitter.Active = !this.IsActive;
+    }
+    
+    function GetDistanceFromPlayer() : Real
+    {
+        return Math.Abs(this.Player.Transform.Translation.X - this.Owner.Transform.Translation.X) +
+            Math.Abs(this.Player.Transform.Translation.Y - this.Owner.Transform.Translation.Y);
+    }
+    
+    function DoRaycastToCheckIfUnblocked() : Boolean
+    {
+        //Check if there is anything in between the sunflower and the avatar.
+        //Prevent the avatar from powering up the sunflower if blocked
+        var rayBeam = local Ray();
+        
+        //Set the starting position
+        rayBeam.Start = this.Owner.Transform.Translation;
+        
+        //Get direction from angle
+        rayBeam.Direction = this.Player.Transform.Translation - this.Owner.Transform.Translation;
+        
+        rayBeam.Direction = this.Owner.Transform.TransformNormal(rayBeam.Direction);
+        rayBeam.Direction = Math.Normalize(rayBeam.Direction);
+        
+        var castResultRange = this.Space.PhysicsSpace.CastRayResults(rayBeam, 5);
+        
+        //Iterate through all results
+        foreach(var castResult in castResultRange)
+        {
+            //Get how far away the object was that we hit
+            var distance = castResult.Distance;
+            
+            //If distance beyond MaxCastDistance, ignore iteration
+            if(distance > this.MaxPowerupDistance)
+            {
+                break;
+            }
+            
+            if(castResult.ObjectHit.ArchetypeName == "DefaultTile")
+            {
+                return false;
+            }
+            else if(castResult.ObjectHit.ArchetypeName == "Player")
+            {
+                return true;
+            }
+        }
+
+        return true;
+    }
+    
+    function DrawLineToPlayer()
+    {
+        if(this.PlayerBeamActive == false)
+        {
+            return;
+        }
+        
+        //Draw a light beam to the player so as to make it look like the avatar is powering the
+        //sunflower by shining its beam at it.
+        if(this.PlayerBeam != null)
+        {
+            this.PlayerBeam.Destroy();
+        }
+        
+        var beamStart : Real3 = this.Player.Transform.Translation + this.Player.PlayerMainLogic.PlayerHeadOffset;
+        
+        this.PlayerBeam = this.Space.Create(Archetype.Find("SunBeam"));
+        this.PlayerBeam.Transform.Translation = (beamStart + this.Owner.Transform.Translation)/2;
+        this.PlayerBeam.Transform.Translation = local Real3(this.PlayerBeam.Transform.Translation.X, this.PlayerBeam.Transform.Translation.Y, this.SunflowerBack.Transform.Translation.Z + 0.1);
+        
+        var a = beamStart.X - this.Owner.Transform.Translation.X;
+        var b = beamStart.Y - this.Owner.Transform.Translation.Y;
+        var c = Math.Sqrt(a * a + b * b);
+        
+        this.PlayerBeam.Area.Size = local Real2(c - 0.4, 0.4);
+        
+        var angle = Math.ATan(b/a);
+        
+        this.PlayerBeam.Transform.RotateAnglesWorld(Real3(0,0,angle));
+        
+        this.PlayerBeam.Sprite.Color = Real4(this.PlayerBeam.Sprite.Color.X,this.PlayerBeam.Sprite.Color.Y,this.PlayerBeam.Sprite.Color.Z,this.BeamAlpha2);
+    }
+    
+    function CheckIfTree(cog : Cog) : Boolean
+    {
+        return cog.ArchetypeName == "Tree";
+    }
+    
+    function CheckIfVine(cog : Cog) : Boolean
+    {
+        return cog.ArchetypeName == "Vine";
+    }
+    
+    function CheckIfPatrolEnemy(cog : Cog) : Boolean
+    {
+        return cog.ArchetypeName == "PatrolEnemy";
+    }
+    
+    function CheckIfFollowEnemy(cog : Cog) : Boolean
+    {
+        return cog.ArchetypeName == "FollowEnemy";
+    }
+    
+    function CheckIfValid(cog : Cog) : Boolean
+    {
+        if(cog.ArchetypeName == "ItemPlacement")
+        {
+            return false;
+        }
+        else if(cog.ArchetypeName == "Player")
+        {
+            return false;
+        }
+        else if(cog.ArchetypeName == "Sunflower")
+        {
+            return false;
+        }
+        else if(cog.ArchetypeName == "Checkpoint")
+        {
+            return false;
+        }
+        else if (cog.ArchetypeName == "Goal")
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+    
+    function DoRaycastForLightBeam()
+    {
+        this.RayBeam = local Ray();
+        
+        //Set the starting position
+        this.RayBeam.Start = this.Owner.Transform.Translation;
+        
+        //Get direction from angle
+        this.RayBeam.Direction = Real3(Math.Cos(this.LightBeamAngleInRadians),Math.Sin(this.LightBeamAngleInRadians),0);
+        
+        this.RayBeam.Direction = this.Owner.Transform.TransformNormal(this.RayBeam.Direction);
+        this.RayBeam.Direction = Math.Normalize(this.RayBeam.Direction);
+        
+        //Do a raycast for only 1 result
+        var castResultRange = this.Space.PhysicsSpace.CastRayResults(this.RayBeam, 10);
+        
+        //Iterate through all results
+        foreach(var castResult in castResultRange)
+        {
+            //Get how far away the object was that we hit
+            var distance = castResult.Distance;
+            
+            if(distance > this.MaxCastDistance)
+            {
+                distance = this.MaxCastDistance;
+                continue;
+            }
+            
+            this.ObjInContact = castResult.ObjectHit;
+            
+            if(this.CheckIfValid(this.ObjInContact))
+            {
+                if(this.CheckIfTree(this.ObjInContact))
+                {
+                    this.ObjInContact.TreeLogic.IsTriggered = true;
+                }
+                else if(this.CheckIfVine(this.ObjInContact))
+                {
+                    this.ObjInContact.VineLogic.RemoveSpikes();
+                }
+                else if(this.CheckIfPatrolEnemy(this.ObjInContact))
+                {
+                    this.ObjInContact.PatrolEnemyLogic.PatrolEnemy.Dying = true;
+                }
+                else if(this.CheckIfFollowEnemy(this.ObjInContact))
+                {
+                    this.ObjInContact.FollowEnemyLogic.FollowEnemy.Dying = true;
+                }
+                
+                //Get the end position
+                this.EndPosition = this.RayBeam.Start + this.RayBeam.Direction * distance;
+                
+                return;
+            }
+            
+            //Get the end position
+            this.EndPosition = this.RayBeam.Start + this.RayBeam.Direction * distance;
+        }
+        
+        //If nothing is hit, draw it to MaxCastDistance
+        this.EndPosition = this.RayBeam.Start + this.RayBeam.Direction * this.MaxCastDistance;
+    }
+    
+    function DrawLightBeam()
+    {
+        if(this.SunflowerBeam != null)
+        {
+            this.SunflowerBeam.Destroy();
+        }
+        
+        this.SunflowerBeam = this.Space.Create(Archetype.Find("SunBeam"));
+        this.SunflowerBeam.Transform.Translation = (this.RayBeam.Start + this.EndPosition)/2;
+        this.SunflowerBeam.Transform.Translation = local Real3(this.SunflowerBeam.Transform.Translation.X, this.SunflowerBeam.Transform.Translation.Y, this.SunflowerBack.Transform.Translation.Z + 0.1);
+        
+        var a = this.EndPosition.X - this.RayBeam.Start.X;
+        var b = this.EndPosition.Y - this.RayBeam.Start.Y;
+        var c = Math.Sqrt(a * a + b * b);
+        
+        // Add 0.2 to make it wider
+        this.SunflowerBeam.Area.Size = local Real2(c + 0.2, 0.5);
+        
+        this.SunflowerBeam.Transform.RotateAnglesWorld(Real3(0,0,this.LightBeamAngleInRadians));
+        
+        this.SunflowerBeam.Sprite.Color = Real4(this.SunflowerBeam.Sprite.Color.X,this.SunflowerBeam.Sprite.Color.Y,this.SunflowerBeam.Sprite.Color.Z,this.BeamAlpha);
+        
+        //var lightBeamLine = new DebugLine();
+        //lightBeamLine.Start(this.RayBeam.Start).End(this.EndPosition).HeadSize(this.HeadSize).Float4Color(this.DrawColorForLightBeam).OnTop(this.OnTop);
+        //lightBeamLine.Draw();
+    }
+    
+    function Destroy()
+    {
+        this.SunflowerBack.Destroy();
+        this.SunflowerFlower.Destroy();
+        
+        if(this.SunflowerBeam != null)
+        {
+            this.SunflowerBeam.Destroy();
+        }
+        
+        if(this.PlayerBeam != null)
+        {
+            this.PlayerBeam.Destroy();
+        }
+        
+        this.SunflowerParticleEffect.Destroy();
+    }
+
+    function ResetLightBeam()
+    {
+        this.DoRaycastForLightBeam();
+        this.DrawLightBeam();
+    }
+    
+    function RotateRight()
+    {
+        if(this.LightBeamAngle > 0)
+        {
+            this.LightBeamAngle -= this.LightBeamRotationSpeed;
+            this.LightBeamAngleInRadians = Math.ToRadians(this.LightBeamAngle);
+            
+            this.ResetLightBeam();
+            
+            this.RotateSunflower(true);
+        }
+    }
+    
+    function RotateLeft()
+    {
+        if(this.LightBeamAngle < 180)
+        {
+            this.LightBeamAngle += this.LightBeamRotationSpeed;
+            this.LightBeamAngleInRadians = Math.ToRadians(this.LightBeamAngle);
+            
+            this.ResetLightBeam();
+            
+            this.RotateSunflower(false);
+        }
+    }
+    
+    function RotateSunflower(isRotateRight : Boolean)
+    {
+        var rotation = this.LightBeamRotationSpeedInRadians;
+        
+        if(isRotateRight)
+        {
+            rotation *= -1;
+        }
+        
+        this.SunflowerFlower.Transform.RotateAnglesLocal(local Real3(0,0,rotation));
+        this.SunflowerBack.Transform.RotateAnglesLocal(local Real3(0,0,rotation));
+    }
+    
+    function InteractWith()
+    {
+        this.LevelSettings.InventoryLogic.AddItem(this.Owner,"IN_Sunflower");
+        this.Destroy();
+        this.Owner.Destroy();
+    }
+}

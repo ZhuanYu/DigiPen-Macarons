@@ -1,0 +1,87 @@
+class MenuLogic : ZilchComponent
+{
+    var FadeEffect : Cog = null;
+    var StartButton : Cog = null;
+    var OptionButton : Cog = null;
+    var CreditButton : Cog = null;
+    var QuitButton : Cog = null;
+    var BackButton : Cog = null;
+    var MenuBackground : Cog = null;
+    
+    function Initialize(init : CogInitializer)
+    {
+        this.FadeEffect = this.Space.FindObjectByName("Menu_Fade");
+        this.StartButton = this.Space.FindObjectByName("Click_StartButton");
+        this.OptionButton = this.Space.FindObjectByName("Click_OptionButton");
+        this.CreditButton = this.Space.FindObjectByName("Click_CreditButton");
+        this.QuitButton = this.Space.FindObjectByName("Click_QuitButton");
+        this.BackButton = this.Space.FindObjectByName("Click_BackButton");
+        this.MenuBackground = this.Space.FindObjectByName("Menu_Background");
+        
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+    }
+
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        if (!this.LevelSettings.MenuLogic.FadeEffect.MenuFadeLogic.DoFade 
+            && this.StartButton.MenuButtonLogic.UpButton)
+        {
+            //this.Space.LoadLevel(this.StartButton.MenuButtonLogic.NextLevel);
+            
+            this.StartButton.MenuButtonLogic.Button.Sprite.Visible = false;
+            this.OptionButton.MenuButtonLogic.Button.Sprite.Visible = false;
+            this.CreditButton.MenuButtonLogic.Button.Sprite.Visible = false;
+            this.QuitButton.MenuButtonLogic.Button.Sprite.Visible = false;
+            this.BackButton.MenuButtonLogic.Button.Sprite.Visible = true;
+            
+            this.MenuBackground.Sprite.SpriteSource = SpriteSource.Find("BG_LevelSelect");
+            this.Owner.LevelSelectLogic.ChangeVisibility();
+            
+            this.StartButton.MenuButtonLogic.UpButton = false;
+        }
+        else if (this.OptionButton.MenuButtonLogic.UpButton)
+        {
+            this.StartButton.MenuButtonLogic.Button.Sprite.Visible = false;
+            this.OptionButton.MenuButtonLogic.Button.Sprite.Visible = false;
+            this.CreditButton.MenuButtonLogic.Button.Sprite.Visible = false;
+            this.QuitButton.MenuButtonLogic.Button.Sprite.Visible = false;
+            this.BackButton.MenuButtonLogic.Button.Sprite.Visible = true;
+            
+            this.MenuBackground.Sprite.SpriteSource = SpriteSource.Find("BG_Instructions");
+            
+            this.OptionButton.MenuButtonLogic.UpButton = false;
+        }
+        else if (this.CreditButton.MenuButtonLogic.UpButton)
+        {
+            this.StartButton.MenuButtonLogic.Button.Sprite.Visible = false;
+            this.OptionButton.MenuButtonLogic.Button.Sprite.Visible = false;
+            this.CreditButton.MenuButtonLogic.Button.Sprite.Visible = false;
+            this.QuitButton.MenuButtonLogic.Button.Sprite.Visible = false;
+            this.BackButton.MenuButtonLogic.Button.Sprite.Visible = true;
+            
+            this.MenuBackground.Sprite.SpriteSource = SpriteSource.Find("BG_Credits");
+            
+            this.CreditButton.MenuButtonLogic.UpButton = false;
+        }
+        else if (this.QuitButton.MenuButtonLogic.UpButton)
+        {
+            this.GameSession.Quit();
+        }
+        else if (this.BackButton.MenuButtonLogic.UpButton)
+        {
+            this.StartButton.MenuButtonLogic.Button.Sprite.Visible = true;
+            this.OptionButton.MenuButtonLogic.Button.Sprite.Visible = true;
+            this.CreditButton.MenuButtonLogic.Button.Sprite.Visible = true;
+            this.QuitButton.MenuButtonLogic.Button.Sprite.Visible = true;
+            this.BackButton.MenuButtonLogic.Button.Sprite.Visible = false;
+            
+            if (this.MenuBackground.Sprite.SpriteSource.Name == "BG_LevelSelect")
+            {
+                this.Owner.LevelSelectLogic.ChangeVisibility();
+            }
+            this.MenuBackground.Sprite.SpriteSource = SpriteSource.Find("BG_Menu");
+            
+            this.BackButton.MenuButtonLogic.UpButton = false;
+        }
+    }
+}

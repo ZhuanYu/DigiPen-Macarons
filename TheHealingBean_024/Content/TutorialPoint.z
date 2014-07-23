@@ -1,0 +1,81 @@
+//A trigger point - When a player walks into it, it is triggered. Used to check if players have reached a certain area
+class TutorialPoint : ZilchComponent
+{
+    [Property]
+    var ArrowOffset : Real3 = local Real3(0,0,0);
+    var FadeSpeed : Real = 1.0;
+    
+    var Arrow : Cog = null;
+    
+    [Property]
+    var ArrowVisible : Boolean = false;
+    
+    var PlayerTriggered : Boolean = false;
+    
+    function Initialize(init : CogInitializer)
+    {
+        this.Arrow = this.Space.CreateAtPosition(Archetype.Find("Arrow"), this.Owner.Transform.Translation + this.ArrowOffset);
+        
+        if(this.ArrowVisible == false)
+        {
+            this.SetAlpha(0.0);
+        }
+        
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+    }
+
+    function SetAlpha(alpha : Real)
+    {
+        var color = this.Arrow.Sprite.Color;
+        color.W = alpha;
+        
+        this.Arrow.Sprite.Color = color;
+    }
+    
+    function FadeArrow(dt : Real)
+    {
+        var color = this.Arrow.Sprite.Color;
+        
+        if(this.ArrowVisible)
+        {
+            if(color.W < 1.0)
+            {
+                color.W += this.FadeSpeed * dt;
+                
+                if(color.W > 1.0)
+                {
+                    color.W = 1.0;
+                }
+            }
+        }
+        else
+        {
+            if(color.W > 0.0)
+            {
+                color.W -= this.FadeSpeed * dt;
+                
+                if(color.W < 0.0)
+                {
+                    color.W = 0.0;
+                }
+            }
+        }
+        
+        this.Arrow.Sprite.Color = color;
+    }
+    
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        this.PlayerTriggered = false;
+        
+        foreach(var contact in this.Owner.BoxCollider.Contacts)
+        {
+            if(contact.OtherObject.ArchetypeName == "Player")
+            {
+                this.PlayerTriggered = true;
+            }
+        }
+        
+        this.FadeArrow(event.Dt);
+    }
+}

@@ -1,0 +1,21 @@
+class MovingMist : ZilchComponent
+{
+    constructor() : base()
+    {
+    }
+
+    function Initialize(init : CogInitializer)
+    {
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+    }
+
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        this.Owner.Transform.Translation = this.Owner.Transform.Translation + local Real3(0.5 * event.Dt, 0.0, 0.0);
+        
+        if (this.Owner.Transform.Translation.X >= 50.0)
+        {
+            this.Owner.Transform.Translation = local Real3(-25.0, this.Owner.Transform.Translation.Y, this.Owner.Transform.Translation.Z);
+        }
+    }
+}

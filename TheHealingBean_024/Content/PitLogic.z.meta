@@ -1,0 +1,8 @@
+TextContent = 
+{
+	ZilchScriptBuilder = 
+	{
+		string Name = "PitLogic",
+		uint64 ResourceId = 53a0665dd8eb1f7b,
+	},
+},

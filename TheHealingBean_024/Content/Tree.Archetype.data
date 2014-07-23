@@ -1,0 +1,53 @@
+Cog = 
+{
+	LinkId = 
+	{
+		uint Id = 1,
+	},
+	Named = 
+	{
+		string Name = "Tree",
+	},
+	Archetyped = 
+	{
+		string Name = "53a1f42057816f72:Tree",
+	},
+	Transform = 
+	{
+		Vec3 Translation = [17.5, 0.5, -0.2],
+		Vec3 Scale = [1, 1, 1],
+		Quat Rotation = [0, 0, 0, 1],
+	},
+	Sprite = 
+	{
+		string SpriteSource = "53bc7115e51e09c1:SS_Tree",
+		bool FlipX = false,
+		bool FlipY = false,
+		Vec4 Color = [1, 1, 1, 1],
+		bool Visible = true,
+		bool OnTop = false,
+		bool AnimationActive = false,
+		float AnimationSpeed = 0.5,
+		uint StartFrame = 0,
+		BlendMode BlendMode = Alpha,
+		SpriteGeometryMode GeometryMode = ZPlane,
+		string SpriteLayer = "52ad5fa30d7fcd50:DefaultSpriteLayer",
+	},
+	BoxCollider = 
+	{
+		bool Ghost = true,
+		bool SendsMessages = true,
+		bool Seamless = false,
+		string MaterialName = "4faa6050b8692851:HardMaterial",
+		string SerializedGroupName = "4e740859314e5515:DefaultGroup",
+		Vec3 Offset = [-0.1, -0.1, 0],
+		Vec3 Size = [0.35, 6.9, 0.5],
+	},
+	TreeLogic = 
+	{
+		float MaxGrowthAmount = 6,
+		float GrowSpeed = 2,
+		Vec3 SparkleOffset = [0, 2, 0],
+		Vec3 SparkleScale = [1, 3, 1],
+	},
+},

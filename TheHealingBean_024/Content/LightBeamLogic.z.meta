@@ -1,0 +1,8 @@
+TextContent = 
+{
+	ZilchScriptBuilder = 
+	{
+		string Name = "LightBeamLogic",
+		uint64 ResourceId = 53a26b15b8767a97,
+	},
+},

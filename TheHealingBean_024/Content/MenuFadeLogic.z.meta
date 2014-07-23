@@ -1,0 +1,8 @@
+TextContent = 
+{
+	ZilchScriptBuilder = 
+	{
+		string Name = "MenuFadeLogic",
+		uint64 ResourceId = 534adcafc6e8d7d6,
+	},
+},

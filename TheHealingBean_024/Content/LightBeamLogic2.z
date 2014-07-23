@@ -1,0 +1,143 @@
+//Author: Evan Tay
+//Date: 28/5/14
+//Title: Light Beam Logic 2
+//Description: This script contains the logic needed for the light beam mechanic. It uses
+//raycasting to determine the end point of the light beam by checking when the ray first
+//collides with an object.
+/*class LightBeamLogic2 : ZilchComponent
+{
+    //Light Beam//
+    var IsActive : Boolean = true;
+    var Angle : Real = 0;
+    
+    var ObjInContact : Cog = null;
+    var IsTree : Boolean = false;
+    var IsEnemy : Boolean = false;
+    
+    //Ray-Casting//
+    var MaxCastDistance : Real = 100.0;
+    var RayBeam : Ray = local Ray();
+    var EndPosition : Real3 = local Real3(0,0,0);
+    var RaycastLine : DebugLine = new DebugLine();
+    
+    //Debug Drawing//
+    [Property]
+    var DebugDraw : Boolean = false;
+    var HeadSize : Real = 0;
+    var DrawColor : Real4 = Real4(1.0,1.0,0.0,1.0);
+    var OnTop : Boolean = true;
+    
+    constructor() : base()
+    {
+    }
+
+    function Initialize(init : CogInitializer)
+    {
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+    }
+    
+    function Destroy()
+    {
+        this.IsActive = false;
+        this.RaycastLine = null;
+    }
+    
+    function Setup(translation : Real3, angle : Real)
+    {
+        this.Owner.Transform.Translation = translation;
+        this.Angle = Math.ToRadians(angle);
+        this.Owner.Transform.RotateAnglesWorld(Real3(0,0,this.Angle));
+        this.DoRaycast();
+    }
+
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        if(this.IsActive)
+        {
+            if(this.ObjInContact != null)
+            {
+                if(this.IsTree)
+                {
+                    this.ObjInContact.TreeLogic.IsTriggered = true;
+                }
+            }
+            
+            this.Draw();
+        }
+    }
+    
+    function CheckIfTree(cog : Cog) : Boolean
+    {
+        return cog.ArchetypeName == "Tree";
+    }
+    
+    function CheckIfEnemy(cog : Cog) : Boolean
+    {
+        return cog.ArchetypeName == "MovingEnemy";
+    }
+    
+    function CheckIfValid(cog : Cog) : Boolean
+    {
+        return cog.ArchetypeName != "Player" && cog.ArchetypeName != "GridPlacement";
+    }
+    
+    function DoRaycast()
+    {
+        this.RayBeam = local Ray();
+        
+        //Set the starting position
+        this.RayBeam.Start = this.Owner.Transform.Translation;
+        
+        //Get direction from angle
+        this.RayBeam.Direction = Real3(0,1,0);
+        
+        this.RayBeam.Direction = this.Owner.Transform.TransformNormal(this.RayBeam.Direction);
+        this.RayBeam.Direction = Math.Normalize(this.RayBeam.Direction);
+        
+        //Do a raycast for only 1 result
+        var castResultRange = this.Space.PhysicsSpace.CastRayResults(this.RayBeam, 10);
+        
+        //Iterate through all results
+        foreach(var castResult in castResultRange)
+        {
+            //Get how far away the object was that we hit
+            var distance = castResult.Distance;
+            
+            //If distance beyond MaxCastDistance, ignore iteration
+            if(distance > this.MaxCastDistance)
+            {
+                break;
+            }
+            
+            if(this.CheckIfValid(castResult.ObjectHit))
+            {
+                this.ObjInContact = castResult.ObjectHit;
+                
+                if(this.CheckIfTree(this.ObjInContact))
+                {
+                    this.IsTree = true;
+                }
+                else if(this.CheckIfEnemy(this.ObjInContact))
+                {
+                    this.IsEnemy = true;
+                    //this.ObjInContact.EnemyLogic.Dying = true;
+                }
+                
+                //Get the end position
+                this.EndPosition = this.RayBeam.Start + this.RayBeam.Direction * distance;
+                
+                return;
+            }
+        }
+        
+        //If nothing is hit, draw it to MaxCastDistance
+        this.EndPosition = this.RayBeam.Start + this.RayBeam.Direction * this.MaxCastDistance;
+    }
+    
+    function Draw()
+    {
+        this.RaycastLine = new DebugLine();
+        this.RaycastLine.Start(this.RayBeam.Start).End(this.EndPosition).HeadSize(this.HeadSize).Float4Color(this.DrawColor).OnTop(this.OnTop);
+        this.RaycastLine.Draw();
+    }
+}*/

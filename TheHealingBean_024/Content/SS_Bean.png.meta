@@ -1,0 +1,20 @@
+ImageContent = 
+{
+	SpriteSourceBuilder = 
+	{
+		string Name = "SS_Bean",
+		uint64 ResourceId = 539ed421d715a206,
+		uint64 AtlasId = 5274cf95e4a661fd,
+		uint FrameSizeX = 256,
+		uint FrameSizeY = 256,
+		uint FrameCount = 16,
+		float FrameDelay = 0.0833333,
+		float OriginX = 128,
+		float OriginY = 128,
+		float PixelsPerUnit = 256,
+		bool Smoothing = true,
+		bool Looping = true,
+		Vec4 Slices = [0, 0, 0, 0],
+		SpriteFill Fill = Stretch,
+	},
+},

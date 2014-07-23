@@ -1,0 +1,8 @@
+TextContent = 
+{
+	ZilchScriptBuilder = 
+	{
+		string Name = "PatrolEnemyLogic",
+		uint64 ResourceId = 5339e802f46d90af,
+	},
+},

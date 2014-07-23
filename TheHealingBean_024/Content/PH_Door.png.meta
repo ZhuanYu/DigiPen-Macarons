@@ -1,0 +1,20 @@
+ImageContent = 
+{
+	SpriteSourceBuilder = 
+	{
+		string Name = "PH_Door",
+		uint64 ResourceId = 532c7e01cc26f57c,
+		uint64 AtlasId = 5274cf95e4a661fd,
+		uint FrameSizeX = 63,
+		uint FrameSizeY = 85,
+		uint FrameCount = 1,
+		float FrameDelay = 0.0833333,
+		float OriginX = 31,
+		float OriginY = 42,
+		float PixelsPerUnit = 64,
+		bool Smoothing = true,
+		bool Looping = true,
+		Vec4 Slices = [0, 0, 0, 0],
+		SpriteFill Fill = Stretch,
+	},
+},

@@ -1,0 +1,128 @@
+class TreeLogic : ZilchComponent
+{
+    var IsTriggered : Boolean = false;
+    
+    var UnTriggerDelay : Real = 0;
+    var UnTriggerIncrement : Real = 0;
+    
+    [Property]
+    var MaxGrowthAmount: Real = 10.0;
+    [Property]
+    var GrowSpeed : Real = 2.0;
+    
+    //Default offset and scale requires tree to be mostly underground
+    [Property]
+    var SparkleOffset : Real3 = local Real3(0,6,0);
+    [Property]
+    var SparkleScale : Real3 = local Real3(0.4,1.5,1);
+    
+    var InitialPos : Real3 = local Real3(0,0,0);
+    var MaxPos : Real3 = local Real3(0,0,0);
+    
+    var InitialHeight : Real = 0;
+    var MaxHeight : Real = 0;
+    var GrowthAmount : Real = 0;
+    var CurrentHeight : Real = 0;
+    
+    var TreeMoving : Real = 0; //If tree is moving up
+    
+    //Graphics//
+    var TreeParticleEffect: Cog = null;
+    
+    constructor() : base()
+    {
+    }
+
+    function Initialize(init : CogInitializer)
+    {
+        this.InitialPos = this.Owner.Transform.Translation;
+        this.MaxPos = this.InitialPos;
+        
+        this.InitialHeight = this.InitialPos.Y;
+        this.MaxHeight = this.InitialHeight + this.MaxGrowthAmount;
+        
+        this.MaxPos.Y = this.MaxHeight;
+        
+        var particleEffectPos = this.Owner.Transform.Translation + this.SparkleOffset;
+        
+        this.TreeParticleEffect = this.Space.CreateAtPosition(Archetype.Find("TreeParticleEffect"), particleEffectPos);
+
+        this.TreeParticleEffect.Transform.Scale = this.SparkleScale;
+        
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+    }
+
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        this.CurrentHeight = this.Owner.Transform.Translation.Y;
+        
+        var growthAmount = this.GrowSpeed * event.Dt;
+        
+        this.TreeParticleEffect.SphericalParticleEmitter.Active = !this.IsTriggered;
+        
+        this.TreeMoving = 0;
+        
+        if(this.IsTriggered)
+        {
+            if(this.CurrentHeight < this.MaxHeight)
+            {
+                this.Owner.Transform.Translation += local Real3(0,growthAmount,0);
+                this.GrowthAmount += growthAmount;
+                
+                if(this.CurrentHeight > this.MaxHeight)
+                {
+                    this.Owner.Transform.Translation = this.MaxPos;
+                }
+                
+                this.TreeMoving = this.GrowSpeed;
+            }
+        }
+        else
+        {
+            if(this.CurrentHeight > this.InitialHeight)
+            {
+                this.Owner.Transform.Translation -= local Real3(0,growthAmount,0);
+                this.GrowthAmount -= growthAmount;
+                
+                if(this.CurrentHeight < this.InitialHeight)
+                {
+                    this.Owner.Transform.Translation = this.InitialPos;
+                    this.GrowthAmount = 0;
+                }
+                
+                this.TreeMoving = -this.GrowSpeed;
+            }
+        }
+        
+        if(this.GrowthAmount > this.MaxGrowthAmount)
+        {
+            this.GrowthAmount = this.MaxGrowthAmount;
+        }
+        else if(this.GrowthAmount < 0)
+        {
+            this.GrowthAmount = 0;
+        }
+        
+        var newFrame = (this.GrowthAmount/this.MaxGrowthAmount * 3) as Integer;
+        
+        if(newFrame > 2)
+        {
+            newFrame = 2;
+        }
+        
+        this.Owner.Sprite.CurrentFrame = newFrame;
+        
+        if(this.IsTriggered)
+        {
+            if(this.UnTriggerIncrement > this.UnTriggerDelay)
+            {
+                this.UnTriggerIncrement = 0;
+                this.IsTriggered = false;
+            }
+            else
+            {
+                this.UnTriggerIncrement += event.Dt;
+            }
+        }
+    }
+}

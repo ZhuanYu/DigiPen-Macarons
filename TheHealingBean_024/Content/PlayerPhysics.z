@@ -1,0 +1,234 @@
+class PlayerPhysics : ZilchComponent
+{
+    var Size : Real3 = local Real3 (0,0,0);
+    var Centre : Real3 = local Real3 (0,0,0);
+    
+    var Grounded : Boolean = false;
+    var MoveStop : Boolean = false;
+    var HitTop : Boolean = false;
+    var Skin : Real = 0.005;
+    var RayBeam : Ray = Ray();
+    
+    var EndPosition : Real3 = local Real3 (0,0,0);
+    var HeadSize : Real = 0.25;
+    var DrawColor : Real4 = local Real4 (1.0,0,0,1.0);
+    var OnTop : Boolean = true;
+    
+    var CornerCounter : Integer = 0;
+    
+    function Initialize(init : CogInitializer)
+    {
+        this.Size = this.Owner.BoxCollider.Size;
+        this.Centre = this.Owner.BoxCollider.Offset;
+        //Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+    }
+
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+    }
+    
+    // Function to move the character
+    function Move(moveAmount : Real3)
+    {
+        var deltaX = moveAmount.X;
+        var deltaY = moveAmount.Y;
+        var position = this.Owner.Transform.Translation;
+        
+        this.Grounded = false;
+        
+        // I draw out tree rays from the character
+        // One on the left, one in the mid, one in on the right
+        this.CornerCounter = 0;
+        
+        for (var i = 0; i < 3; ++i)
+        {
+            var dir = 0;
+            if (deltaY > 0)
+            {
+                dir = 1;
+                this.HitTop = true;
+            }
+            else
+            {
+                dir = -1;
+                this.HitTop = false;
+            }
+            
+            var x = (position.X + this.Centre.X - this.Size.X * 0.5) + this.Size.X * 0.5 * i;
+            var y = position.Y + this.Centre.Y + this.Size.Y * 0.5 * dir;
+            
+            this.RayBeam.Start = local Real3 (x,y,0);
+            this.RayBeam.Direction = local Real3 (0,dir,0);
+            
+            var castResultRange = this.Space.PhysicsSpace.CastRayResults(this.RayBeam, 1);
+            
+            //Iterate through all results
+            foreach(var castResult in castResultRange)
+            {
+                //Get how far away the object was that we hit
+                var dist = castResult.Distance;
+                
+                this.EndPosition = this.RayBeam.Start + this.RayBeam.Direction;
+                
+                //var debugLine = new DebugLine();
+                //debugLine.Start(this.RayBeam.Start).End(this.EndPosition).HeadSize(this.HeadSize).Float4Color(this.DrawColor).OnTop(this.OnTop);
+                //debugLine.Draw();
+                
+                if (dist <= 1.0)
+                {
+                    if (castResult.ObjectHit.ArchetypeName == "DefaultTile")
+                    {
+                        this.CornerCounter += 1;
+                        
+                        if(dist > Math.Abs(deltaY) + this.Skin)
+                        {
+                            break;
+                        }
+                        
+                        // If it is not touching the ground yet but ray cast hits
+                        if (dist > this.Skin)
+                        {         
+                            deltaY = dist * dir - this.Skin * dir;
+                        }
+                        // touching the ground
+                        else
+                        {
+                            deltaY = 0;
+                        }
+                        
+                        this.Grounded = true;
+                        break;
+                    }
+                }
+            }
+
+        }
+         
+        this.MoveStop = false;
+        
+        // I draw out tree rays from the character
+        // One on the left, one in the mid, one in on the right
+        for (var i = 0; i < 3; ++i)
+        {
+            var dir = 0;
+            if (deltaX > 0)
+            {
+                dir = 1;
+            }
+            else
+            {
+                dir = -1;
+            }
+            
+            var x = position.X + this.Centre.X + this.Size.X * 0.5 * dir;
+            var y = (position.Y + this.Centre.Y - this.Size.Y * 0.5) + this.Size.Y * 0.5 * i;
+            
+            this.RayBeam.Start = local Real3 (x,y,0);
+            this.RayBeam.Direction = local Real3 (dir,0,0);
+            
+            var castResultRange = this.Space.PhysicsSpace.CastRayResults(this.RayBeam, 1);
+            
+            //Iterate through all results
+            foreach(var castResult in castResultRange)
+            {
+                //Get how far away the object was that we hit
+                var dist = castResult.Distance;
+                
+                this.EndPosition = this.RayBeam.Start + this.RayBeam.Direction;
+                
+                //var debugLine = new DebugLine();
+                //debugLine.Start(this.RayBeam.Start).End(this.EndPosition).HeadSize(this.HeadSize).Float4Color(this.DrawColor).OnTop(this.OnTop);
+                //debugLine.Draw();
+                
+                if (dist <= 1.0)
+                {
+                    if (castResult.ObjectHit.ArchetypeName == "DefaultTile")
+                    {
+                        if(dist > Math.Abs(deltaX) + this.Skin)
+                        {
+                            break;
+                        }
+                        
+                        // If it is not touching the ground yet but ray cast hits
+                        if (dist > this.Skin)
+                        {
+                            deltaX = dist * dir - this.Skin * dir;
+                        }
+                        // touching the ground
+                        else
+                        {
+                            deltaX = 0;
+
+                        }
+                        
+                        this.MoveStop = true;
+                        break;
+                    }
+                }     
+            }
+        }
+        
+        // Corner check
+        if (!this.Grounded && !this.MoveStop)
+        {
+            var playerDir = local Real3(deltaX, deltaY, 0);
+            
+            var dirX = 0;
+            if (deltaX > 0)
+            {
+                dirX = 1;
+            }
+            else
+            {
+                dirX = -1;
+            }
+            
+            var dirY = 0;
+            if (deltaY > 0)
+            {
+                dirY = 1;
+            }
+            else
+            {
+                dirY = -1;
+            }
+            
+            var origin = local Real3(position.X + this.Centre.X + this.Size.X * 0.5 * dirX,
+                                    position.Y + this.Centre.Y + this.Size.Y * 0.5 * dirY,
+                                    0);
+                                    
+            this.RayBeam.Start = origin;
+            this.RayBeam.Direction = Math.Normalize(playerDir);
+            
+            var castResultRange = this.Space.PhysicsSpace.CastRayResults(this.RayBeam, 1);
+            
+            //Iterate through all results
+            foreach(var castResult in castResultRange)
+            {
+                //Get how far away the object was that we hit
+                var dist = castResult.Distance;
+                
+                this.EndPosition = this.RayBeam.Start + this.RayBeam.Direction;
+                
+                //var debugLine = new DebugLine();
+                //debugLine.Start(this.RayBeam.Start).End(this.EndPosition).HeadSize(this.HeadSize).Float4Color(this.DrawColor).OnTop(this.OnTop);
+                //debugLine.Draw();
+                
+                if (dist <= Math.Sqrt(deltaX * deltaX + deltaY * deltaY))
+                {
+                    if (castResult.ObjectHit.ArchetypeName == "DefaultTile")
+                    {
+                        
+                        this.Grounded = true;
+                        deltaY = 0;
+                        break;
+                    }
+                }     
+            }
+        }
+        
+        // Set the character translation
+        var finalTransform = local Real3(deltaX, deltaY, 0);
+        this.Owner.Transform.Translation += finalTransform;
+    }
+}

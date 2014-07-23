@@ -1,0 +1,54 @@
+class MenuFadeLogic : ZilchComponent
+{
+    var DounFade : Boolean = true;
+    var DoFade : Boolean = false;
+    
+    function Initialize(init : CogInitializer)
+    {
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+    }
+
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        if (this.DounFade)
+        {
+            this.Unfade(event.Dt / 0.5);
+        }
+        else if (this.DoFade)
+        {
+            this.Fade(event.Dt / 0.5);
+        }
+    }
+    
+    function Unfade(amt : Real)
+    {
+        if(this.Owner.Sprite.Color.W > 0)
+        {
+            if(this.Owner.Sprite.Color.W - amt < 0)
+            {
+                this.Owner.Sprite.Color = Real4(0,0,0,0);
+                this.DounFade = false;
+            }
+            else
+            {
+                this.Owner.Sprite.Color -= Real4(0.0,0.0,0.0,amt);
+            }
+        }
+    }
+    
+    function Fade(amt : Real)
+    {
+        if(this.Owner.Sprite.Color.W < 1.0)
+        {
+            if(this.Owner.Sprite.Color.W + amt >= 1.0)
+            {
+                this.Owner.Sprite.Color = Real4(0,0,0,1.0);
+                this.DoFade = false;
+            }
+            else
+            {
+                this.Owner.Sprite.Color += Real4(0.0,0.0,0.0,amt);
+            }
+        }
+    }
+}

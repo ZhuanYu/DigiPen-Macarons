@@ -1,0 +1,184 @@
+enum CharacterState
+{
+    Idle,
+    Walking,
+    Falling,
+    Clinging,
+    ClimbingUp,
+    ClimbingDown,
+    Jumping,
+    Dying,
+}
+
+class PlayerAnimation : ZilchComponent
+{
+    var PlayerCharacterState: CharacterState = CharacterState.Idle;
+
+    var Framerate : Real = 12;
+    var FrameDelay : Real = 0;
+    var IdleFrameDelay: Real = 0;
+    var FrameDelayIncrement : Real = 0;
+    var RandomGen : Random = null;
+    var StartIdle : Boolean = false;
+    
+    function Initialize(init : CogInitializer)
+    {
+        this.FrameDelay = 1/this.Framerate;
+        
+        this.IdleFrameDelay = this.FrameDelay * 8;
+    
+        this.RandomGen = new Random();
+        
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+    }
+
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        //Console.WriteLine(this.PlayerCharacterState);
+        
+        if(this.PlayerCharacterState == CharacterState.Jumping || this.PlayerCharacterState == CharacterState.Falling)
+        {
+            this.Owner.Sprite.CurrentFrame = 8;
+        }
+        else if(this.PlayerCharacterState == CharacterState.Clinging)
+        {
+            this.Owner.Sprite.CurrentFrame = 4;
+        }
+        else if(this.PlayerCharacterState == CharacterState.ClimbingUp)
+        {
+            if(this.Owner.Sprite.CurrentFrame < 4 || this.Owner.Sprite.CurrentFrame > 7)
+            {
+                this.Owner.Sprite.CurrentFrame = 4;
+            }
+            
+            if(this.FrameDelayIncrement > this.FrameDelay)
+            {
+                if(this.Owner.Sprite.CurrentFrame == 7)
+                {
+                    this.Owner.Sprite.CurrentFrame = 4;
+                }
+                else
+                {
+                    this.Owner.Sprite.CurrentFrame += 1;
+                }
+                
+                this.FrameDelayIncrement = 0;
+            }
+            else
+            {
+                this.FrameDelayIncrement += event.Dt;
+            }
+        }
+        else if(this.PlayerCharacterState == CharacterState.ClimbingDown)
+        {
+            if(this.Owner.Sprite.CurrentFrame < 4)
+            {
+                this.Owner.Sprite.CurrentFrame = 7;
+            }
+            
+            if(this.FrameDelayIncrement > this.FrameDelay)
+            {
+                if(this.Owner.Sprite.CurrentFrame == 4)
+                {
+                    this.Owner.Sprite.CurrentFrame = 7;
+                }
+                else
+                {
+                    this.Owner.Sprite.CurrentFrame -= 1;
+                }
+                
+                this.FrameDelayIncrement = 0;
+            }
+            else
+            {
+                this.FrameDelayIncrement += event.Dt;
+            }
+        }
+        else if(this.PlayerCharacterState == CharacterState.Walking)
+        {
+            if(this.Owner.Sprite.CurrentFrame > 3)
+            {
+                this.Owner.Sprite.CurrentFrame = 0;
+            }
+            
+            if(this.FrameDelayIncrement > this.FrameDelay)
+            {
+                if(this.Owner.Sprite.CurrentFrame == 3)
+                {
+                    this.Owner.Sprite.CurrentFrame = 0;
+                }
+                else
+                {
+                    this.Owner.Sprite.CurrentFrame += 1;
+                }
+                
+                this.FrameDelayIncrement = 0;
+            }
+            else
+            {
+                this.FrameDelayIncrement += event.Dt;
+            }
+        }
+        else if(this.PlayerCharacterState == CharacterState.Dying)
+        {
+            if(this.Owner.Sprite.CurrentFrame < 9)
+            {
+                this.Owner.Sprite.CurrentFrame = 9;
+            }
+            
+            if(this.FrameDelayIncrement > this.FrameDelay)
+            {
+                if(this.Owner.Sprite.CurrentFrame < 13)
+                {
+                    this.Owner.Sprite.CurrentFrame += 1;
+                }
+                
+                this.FrameDelayIncrement = 0;
+            }
+            else
+            {
+                this.FrameDelayIncrement += event.Dt;
+            }
+            
+            //Console.WriteLine(this.Owner.Sprite.CurrentFrame);
+        }
+        else
+        {
+            if(this.Owner.Sprite.CurrentFrame > 0 && this.Owner.Sprite.CurrentFrame < 14)
+            {
+                this.Owner.Sprite.CurrentFrame = 0;
+            }
+            
+            if(this.StartIdle)
+            {
+                if(this.FrameDelayIncrement > this.IdleFrameDelay)
+                {
+                    if(this.Owner.Sprite.CurrentFrame == 14)
+                    {
+                        this.Owner.Sprite.CurrentFrame = 15;
+                    }
+                    else
+                    {
+                        this.Owner.Sprite.CurrentFrame = 14;
+                        this.StartIdle = this.RandomGen.Probability(0.02);
+                    }
+                
+                    this.FrameDelayIncrement = 0;
+                }
+                else
+                {
+                    this.FrameDelayIncrement += event.Dt;
+                }
+            }
+            else
+            {
+                this.StartIdle = this.RandomGen.Probability(0.01);
+            }
+        }
+    }
+    
+    function Reset()
+    {
+        this.Owner.Sprite.CurrentFrame = 0;
+    }
+}

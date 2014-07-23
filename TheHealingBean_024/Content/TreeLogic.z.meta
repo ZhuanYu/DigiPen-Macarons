@@ -1,0 +1,8 @@
+TextContent = 
+{
+	ZilchScriptBuilder = 
+	{
+		string Name = "TreeLogic",
+		uint64 ResourceId = 53a1f4774c4b39ee,
+	},
+},

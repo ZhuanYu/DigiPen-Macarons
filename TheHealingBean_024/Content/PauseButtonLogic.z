@@ -1,0 +1,58 @@
+class PauseButtonLogic : ZilchComponent
+{
+    [Property]
+    var NextLevel : Level = null;
+    
+    var GoMenu : Boolean = false;
+    
+    var Button : Cog = null;
+    
+   function Initialize(init : CogInitializer)
+    {
+        Zero.Connect(this.Owner, Events.MouseEnter, this.OnMouseEnter);
+        Zero.Connect(this.Owner, Events.MouseExit, this.OnMouseExit);
+        Zero.Connect(this.Owner, Events.MouseDown, this.OnMouseDown);
+        Zero.Connect(this.Owner, Events.MouseUp, this.OnMouseUp);
+        
+        if (this.Owner.Name == "Click_RestartButton")
+        {
+            this.Button = this.Space.FindObjectByName("HUD_RestartButton"); 
+        }
+        else if(this.Owner.Name == "Click_MenuButton")
+        {
+            this.Button = this.Space.FindObjectByName("HUD_EndButton");
+        }
+    }
+
+    function OnMouseUp(event : ViewportMouseEvent)
+    {
+        this.GameSession.FindSpaceByName("Main").TimeSpace.TogglePause();
+        
+        this.Button.Sprite.CurrentFrame = 0;
+        this.GoMenu = true;
+        
+        if(this.Owner.Name == "Click_MenuButton")
+        {
+            this.GameSession.FindSpaceByName("Main").LoadLevel(this.NextLevel);
+        }
+        else if (this.Owner.Name == "Click_RestartButton")
+        {
+            this.GameSession.FindSpaceByName("Main").ReloadLevel();
+        }
+    }
+
+    function OnMouseDown(event : ViewportMouseEvent)
+    {
+        this.Button.Sprite.CurrentFrame = 2;
+    }
+
+    function OnMouseExit(event : ViewportMouseEvent)
+    {
+        this.Button.Sprite.CurrentFrame = 0;
+    }
+
+    function OnMouseEnter(event : ViewportMouseEvent)
+    {
+        this.Button.Sprite.CurrentFrame = 1;
+    }
+}

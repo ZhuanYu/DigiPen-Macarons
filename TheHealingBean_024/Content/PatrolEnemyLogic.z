@@ -1,0 +1,472 @@
+class PatrolEnemyLogic : ZilchComponent
+{
+    var Player : Cog = null;
+    var PatrolEnemy: EnemyClass = null;
+    
+     // Ending position for patrolling
+    var EndPos : Real3 = local Real3(0,0,0);
+    // Change the direction of patrolling
+    var ChangeDir : Boolean = false;
+    // Start Patrolling after waiting for awhile
+    var StartPatrol : Boolean = true;
+    
+    var HitPoints : Real = 60;
+    var SetOnFireDuration : Real = 0.5;
+    var SetOnFireIncrement : Real = 0;
+    
+    [Property]
+    // Movement speed
+    var PatrolSpeed : Real = 2;
+    [Property]
+    var ChaseSpeed : Real = 4;
+    // How fast the Character accelerates
+    [Property]
+    var Acceleration : Real = 38;
+    // Amount that pulls the Character down
+    [Property]
+    var Gravity : Real = 22;
+    // How high the Character can jump
+    [Property]
+    var JumpHeight : Real = 12;
+    
+    [Property]
+    var PatrolWaitDelay : Real = 2;
+    [Property]
+    var ChaseWaitDelay : Real = 4;
+    
+    // Detect if Player is in range
+    [Property]
+    var ChaseDistance : Real = 4;
+    [Property]
+    var PatrolRange : Real = 3;
+    
+    var RandNumGen : Random = new Random();
+    
+    var RandNum : Real = 1;
+    
+    var GameSpace : Space = null;
+    
+    function Initialize(init : CogInitializer)
+    {
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+        
+        this.PatrolEnemy = new EnemyClass(this.Owner,
+                                            this.Owner.BoxCollider.Size, 
+                                            this.Owner.BoxCollider.Offset,
+                                            EnemyState.Patrol,
+                                            this.HitPoints,
+                                            this.PatrolSpeed,
+                                            this.ChaseSpeed,
+                                            this.Acceleration,
+                                            this.Gravity,
+                                            this.JumpHeight,
+                                            this.PatrolWaitDelay,
+                                            this.ChaseWaitDelay,
+                                            this.ChaseDistance);
+
+        this.Player = this.Space.FindObjectByName("Player");
+        
+        this.PatrolEnemy.StartPos = this.Owner.Transform.Translation;
+        
+        this.EndPos = this.PatrolEnemy.StartPos - local Real3(this.PatrolRange, 0, 0);
+        
+        this.PatrolEnemy.Fire = this.Space.Create(Archetype.Find("FireParticleEffect"));
+        this.PatrolEnemy.Fire.SphericalParticleEmitter.Active = false;
+        
+        this.GameSpace = this.GameSession.FindSpaceByName("Main");
+    }
+    
+    function UpdateCollision()
+    {
+        foreach(var contact in this.Owner.BoxCollider.Contacts)
+        {
+            if(contact.OtherObject.ArchetypeName == "Player")
+            {
+                this.PatrolEnemy.EnemyState = EnemyState.Attack;
+            }
+            else if(contact.OtherObject.ArchetypeName == "Pit")
+            {
+                this.PatrolEnemy.Fire.Destroy();
+                this.Owner.Destroy();
+            }
+        }
+    }
+    
+    function AllowUpdate(dt: Real) : Boolean
+    {
+        if (!this.Player.PlayerMainLogic.IsAlive || this.Player.PlayerMainLogic.HasComplete
+            || this.Player.PlayerMainLogic.Starting)
+        {
+            if (this.Player.PlayerMainLogic.IsAlive && this.Player.PlayerMainLogic.Starting)
+            {
+                this.Owner.Transform.Translation = this.PatrolEnemy.StartPos;
+                this.Owner.EnemyAnimation.Reset();
+            }
+            
+            //this.Owner.Sprite.AnimationActive = false;
+            this.PatrolEnemy.AmountToMove.X = 0;
+            this.PatrolEnemy.AmountToMove.Y -= this.PatrolEnemy.Gravity * dt;
+            this.PatrolEnemy.Move(this.GameSpace, this.PatrolEnemy.AmountToMove * dt);
+            this.PatrolEnemy.DoDamage = false;
+            if (this.PatrolEnemy.EnemyState != EnemyState.Dead)
+            {
+                this.PatrolEnemy.Dying = false;
+            }
+            this.PatrolEnemy.Chase = false;
+
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+    
+    function BurnEnemy(dt: Real)
+    {        
+        this.PatrolEnemy.TargetSpeed = 0;
+        this.PatrolEnemy.CurrentSpeed = 0;
+        
+        if(this.PatrolEnemy.Health > 0)
+        {
+            this.PatrolEnemy.EnemyState = EnemyState.Dying;
+        
+            this.PatrolEnemy.Health -= 30 * dt;
+            
+            this.PatrolEnemy.Fire.Transform.Translation = this.Owner.Transform.Translation;
+            this.PatrolEnemy.Fire.SphericalParticleEmitter.Active = true;
+            
+            if(this.PatrolEnemy.FlashRedIncrement > this.PatrolEnemy.FlashRedDelay)
+            {
+                this.PatrolEnemy.FlashRedIncrement = 0;
+                this.PatrolEnemy.FlashRed = !this.PatrolEnemy.FlashRed;
+                
+                if(this.PatrolEnemy.FlashRed)
+                {
+                    this.Owner.Sprite.Color = this.PatrolEnemy.DefaultTint;
+                }
+                else
+                {
+                    this.Owner.Sprite.Color = this.PatrolEnemy.DamagedTint;
+                }
+            }
+            else
+            {
+                this.PatrolEnemy.FlashRedIncrement += dt;
+            }
+        }
+        else
+        {
+            // Destroy the enemy
+            if(this.PatrolEnemy.EnemyState != EnemyState.Dead)
+            {
+                this.PatrolEnemy.EnemyState = EnemyState.Dead;
+                this.PatrolEnemy.Fire.Destroy();
+                this.Owner.Sprite.Color = this.PatrolEnemy.DefaultTint;
+            }
+            
+            if (this.PatrolEnemy.Destroy)
+            {
+                this.Owner.Destroy();
+            }
+        }
+    }
+    
+    function ChasePlayer(curDirection: Real3, thePlayerPos: Real3, dt: Real)
+    {
+        if (curDirection.X > 0)
+        {
+            this.Owner.Sprite.FlipX = true;
+        }
+        else
+        {
+            this.Owner.Sprite.FlipX = false;
+        }
+        
+        this.PatrolEnemy.EnemyState = EnemyState.Chase;
+    
+        // Move only if not really close to the player
+        // this prevents spasm
+        if (this.Owner.Transform.Translation.X >= thePlayerPos.X + 0.05 ||
+                this.Owner.Transform.Translation.X <= thePlayerPos.X - 0.05)
+        {
+                      
+        }
+        else
+        {
+            curDirection.X = 0;
+            this.PatrolEnemy.EnemyState = EnemyState.Wait;
+        }
+        
+        if (this.PatrolEnemy.MoveStop)
+        {
+            this.PatrolEnemy.TargetSpeed = 0;
+            this.PatrolEnemy.CurrentSpeed = 0;
+        }
+        
+        // This one increases the speed gradually
+        // So the character does not move at max speed at the start
+        this.PatrolEnemy.TargetSpeed = curDirection.X * this.PatrolEnemy.RunningSpeed;
+        this.PatrolEnemy.CurrentSpeed = this.PatrolEnemy.IncrementTowards(
+                                                this.PatrolEnemy.CurrentSpeed, 
+                                                this.PatrolEnemy.TargetSpeed, 
+                                                this.PatrolEnemy.Acceleration, dt);
+        
+        if (this.PatrolEnemy.Grounded)
+        {
+            this.PatrolEnemy.AmountToMove.Y = 0;
+        }
+        
+        // Set to chasing
+        this.PatrolEnemy.Chase = true;
+        this.PatrolEnemy.ChaseIncrement = 0;
+    }
+    
+    function CheckForPlayer(toPlayer: Real3, curDirection: Real3, dt: Real)
+    {
+        this.PatrolEnemy.ChaseIncrement += dt;
+        // Go back to start position
+        var toStart = this.PatrolEnemy.StartPos - this.Owner.Transform.Translation;
+        toStart = local Real3(toStart.X, 0.0, 0.0);
+        // Normalize
+        var currDirection = Math.Normalize(toStart);
+        
+        // Wait for 4 seconds
+        if (this.PatrolEnemy.ChaseIncrement > this.PatrolEnemy.ChaseDelay
+            || Math.Length(toPlayer) > this.PatrolEnemy.DetectRange * 2)
+        {
+            if (Math.Abs(toStart.X) > this.PatrolRange)
+            {
+                if (currDirection.X > 0)
+                {
+                    this.Owner.Sprite.FlipX = true;
+                }
+                else
+                {
+                    this.Owner.Sprite.FlipX = false;
+                }
+                
+                if (currDirection.X < 0 && this.Owner.Sprite.FlipX)
+                {
+                    this.PatrolEnemy.PlayerInSight = true;
+                }
+                else if (currDirection.X > 0 && !this.Owner.Sprite.FlipX)
+                {
+                    this.PatrolEnemy.PlayerInSight = true;
+                }
+                else
+                {
+                    this.PatrolEnemy.PlayerInSight = false;
+                }
+                
+                // This one increases the speed gradually
+                // So the character does not move at max speed at the start
+                this.PatrolEnemy.TargetSpeed = currDirection.X * this.PatrolEnemy.Speed;
+                this.PatrolEnemy.CurrentSpeed = this.PatrolEnemy.IncrementTowards(
+                                                    this.PatrolEnemy.CurrentSpeed, 
+                                                    this.PatrolEnemy.TargetSpeed, 
+                                                    this.PatrolEnemy.Acceleration, dt);
+                
+                // Set state to go back
+                this.PatrolEnemy.EnemyState = EnemyState.GoBack;
+            }
+            // 
+            else
+            {
+                this.PatrolEnemy.ChaseIncrement = 0;
+                this.PatrolEnemy.Chase = false;
+                this.StartPatrol = true;
+            }
+        }
+        else
+        {
+            this.PatrolEnemy.EnemyState = EnemyState.Wait;
+            this.PatrolEnemy.TargetSpeed = 0;
+            this.PatrolEnemy.CurrentSpeed = 0;
+            
+            if (Math.Length(toPlayer) <= this.PatrolEnemy.DetectRange)
+            {
+                this.PatrolEnemy.ChaseIncrement = 0;
+                
+                var dirVec = this.Player.Transform.Translation - this.Owner.Transform.Translation;
+                // Normalize to get only the direction
+                dirVec = local Real3(dirVec.X, 0.0, 0.0);
+                var dirToPlayer = Math.Normalize(dirVec);
+                
+                if (currDirection.X == dirToPlayer.X && this.PatrolEnemy.AtEdge)
+                {
+                    // Get it out of the edge
+                    this.PatrolEnemy.TargetSpeed = curDirection.X * this.PatrolEnemy.RunningSpeed;
+                    this.PatrolEnemy.CurrentSpeed = this.PatrolEnemy.IncrementTowards(
+                                                    this.PatrolEnemy.CurrentSpeed, 
+                                                    this.PatrolEnemy.TargetSpeed, 
+                                                    this.PatrolEnemy.Acceleration, dt);
+                }
+            }
+        }
+    }
+    
+    function Patrolling(curDirection: Real3, dt: Real)
+    {
+        // If reached the end of the range of patrol
+        // change direction
+        if ((this.Owner.Transform.Translation.X <= this.EndPos.X + 0.05 &&
+            this.Owner.Transform.Translation.X >= this.EndPos.X - 0.05) &&
+            this.StartPatrol)
+        {
+            this.StartPatrol = false;
+            this.ChangeDir = !this.ChangeDir;
+            this.PatrolEnemy.TargetSpeed = 0;
+            this.PatrolEnemy.CurrentSpeed = 0;
+            
+            if (this.ChangeDir)
+            {
+                this.EndPos = this.PatrolEnemy.StartPos + 
+                                local Real3(this.PatrolRange, 0, 0);
+            }
+            else
+            {
+                this.EndPos = this.PatrolEnemy.StartPos - 
+                                local Real3(this.PatrolRange, 0, 0);
+            }
+            
+            this.RandNum = this.RandNumGen.RangeInclusiveMax(1, this.PatrolEnemy.PatrolDelay as Integer);
+        }
+        else if (!this.StartPatrol)
+        {  
+            // Wait 2 seconds
+            if (this.PatrolEnemy.PatrolIncrement > this.RandNum)
+            {
+                // Start patrolling again
+                this.StartPatrol = true;
+                this.PatrolEnemy.PatrolIncrement = 0;
+            }
+            else
+            {
+                this.PatrolEnemy.PatrolIncrement += dt;
+                
+                this.PatrolEnemy.EnemyState = EnemyState.Wait;
+            
+                if (this.ChangeDir)
+                {
+                    // Move right
+                    this.Owner.Sprite.FlipX = false;
+                }
+                else
+                {
+                    this.Owner.Sprite.FlipX = true;
+                }
+            }
+        }
+        
+        if (curDirection.X > 0 && this.Owner.Sprite.FlipX)
+        {
+            this.PatrolEnemy.PlayerInSight = true;
+        }
+        else if (curDirection.X < 0 && !this.Owner.Sprite.FlipX)
+        {
+            this.PatrolEnemy.PlayerInSight = true;
+        }
+        else
+        {
+            this.PatrolEnemy.PlayerInSight = false;
+        }
+        
+        // If can patrol
+        if (this.StartPatrol)
+        {
+            this.PatrolEnemy.EnemyState = EnemyState.Patrol;
+            if (this.ChangeDir)
+            {
+                // Move right
+                this.Owner.Sprite.FlipX = true;
+                this.PatrolEnemy.TargetSpeed = 1.0 * this.PatrolEnemy.Speed;
+            }
+            else
+            {
+                this.Owner.Sprite.FlipX = false;
+                this.PatrolEnemy.TargetSpeed = -1.0 * this.PatrolEnemy.Speed;
+            }
+            
+            // This one increases the speed gradually
+            // So the character does not move at max speed at the start
+            this.PatrolEnemy.CurrentSpeed = this.PatrolEnemy.IncrementTowards(
+                                                this.PatrolEnemy.CurrentSpeed, 
+                                                this.PatrolEnemy.TargetSpeed, 
+                                                this.PatrolEnemy.Acceleration, dt);
+        }
+    }
+    
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        if (!this.AllowUpdate(event.Dt))
+        {
+            return;
+        }
+        
+        this.PatrolEnemy.UpdateAnimation(event.Dt);
+        
+        // If the Enemy is getting hit by the sunflower ray
+        if(this.PatrolEnemy.Dying)
+        {   
+            //The fire on the enemy will extinguish if no sunlight is directed at it UNTIL it is set on fire by a constant X time application of sun light
+            if(this.SetOnFireIncrement < this.SetOnFireDuration)
+            {
+                this.PatrolEnemy.Dying = false;
+                this.SetOnFireIncrement += event.Dt;
+            }
+            
+            this.BurnEnemy(event.Dt);
+        }
+        else
+        {
+            this.Owner.Sprite.Color = this.PatrolEnemy.DefaultTint;
+            this.PatrolEnemy.Fire.SphericalParticleEmitter.Active = false;
+            
+            // Get the direction vector towards the player
+            var thePlayerPos = this.Player.Transform.Translation;
+            var toPlayer = thePlayerPos - this.Owner.Transform.Translation;
+            
+            // Normalize to get only the direction
+            toPlayer = local Real3(toPlayer.X, toPlayer.Y, 0.0);
+            var curDirection = Math.Normalize(toPlayer);
+            
+            if (this.PatrolEnemy.CornerCounter < 3)
+            {
+               this.PatrolEnemy.AtEdge = true;
+            }
+            else
+            {
+                this.PatrolEnemy.AtEdge = false;
+            }
+            
+            // Get the magnitude of the direction vector
+            // If player is close by
+            if(Math.Length(toPlayer) < this.PatrolEnemy.DetectRange 
+                && !this.PatrolEnemy.AtEdge && this.PatrolEnemy.PlayerInSight)
+            {
+                this.ChasePlayer(curDirection, thePlayerPos, event.Dt);
+            }
+            // If player is not close by
+            else
+            {
+                // Enemy has chased player before
+                if (this.PatrolEnemy.Chase)
+                {
+                    this.CheckForPlayer(toPlayer, curDirection, event.Dt);
+                }
+                else 
+                {
+                    this.Patrolling(curDirection, event.Dt);
+                }
+            }
+            
+            this.UpdateCollision();
+            
+            // Set the amount to move the character
+            this.PatrolEnemy.AmountToMove.X = this.PatrolEnemy.CurrentSpeed;
+            this.PatrolEnemy.AmountToMove.Y -= this.PatrolEnemy.Gravity * event.Dt;
+            this.PatrolEnemy.Move(this.GameSpace, this.PatrolEnemy.AmountToMove * event.Dt);
+        }
+    }
+}

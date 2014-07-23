@@ -1,0 +1,79 @@
+class TextFollow : ZilchComponent
+{
+    var Enemy : Cog = null;
+    var BigEnemy : Cog = null;
+    
+    function Initialize(init : CogInitializer)
+    {
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+        
+        // Find the Enemy
+        //this.Enemy = this.Space.FindObjectByName("MovingEnemy");
+        
+        //this.BigEnemy = this.Space.FindObjectByName("SleepingEnemy");
+    }
+
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        // Put the text above the enemy
+        // = this.Owner.Transform.Translation 
+        //+ local Real3(0.0, 1.0, 0.0);
+        
+        if (this.Owner.FollowEnemyLogic != null)
+        {
+            // Show the enemy states        
+            if (this.Owner.FollowEnemyLogic.FollowEnemy.EnemyState == EnemyState.Chase)
+            {
+                this.Owner.SpriteText.Text = "Chase";
+            }
+            else if (this.Owner.FollowEnemyLogic.FollowEnemy.EnemyState == EnemyState.Patrol)
+            {
+                this.Owner.SpriteText.Text = "Follow";
+            }
+            else if (this.Owner.FollowEnemyLogic.FollowEnemy.EnemyState == EnemyState.Wait)
+            {
+                this.Owner.SpriteText.Text = "Wait";
+            }
+            else if (this.Owner.FollowEnemyLogic.FollowEnemy.EnemyState == EnemyState.GoBack)
+            {
+                this.Owner.SpriteText.Text = "Go Back";
+            }
+            else if (this.Owner.FollowEnemyLogic.FollowEnemy.EnemyState == EnemyState.Attack)
+            {
+                this.Owner.SpriteText.Text = "Attack";
+            }
+            else if (this.Owner.FollowEnemyLogic.FollowEnemy.EnemyState == EnemyState.Dying)
+            {
+                this.Owner.SpriteText.Text = "Dying";
+            }
+        }
+        else if (this.Owner.PatrolEnemyLogic != null)
+        {
+            // Show the enemy states        
+            if (this.Owner.PatrolEnemyLogic.PatrolEnemy.EnemyState == EnemyState.Chase)
+            {
+                this.Owner.SpriteText.Text = "Chase";
+            }
+            else if (this.Owner.PatrolEnemyLogic.PatrolEnemy.EnemyState == EnemyState.Patrol)
+            {
+                this.Owner.SpriteText.Text = "Patrol";
+            }
+            else if (this.Owner.PatrolEnemyLogic.PatrolEnemy.EnemyState == EnemyState.Wait)
+            {
+                this.Owner.SpriteText.Text = "Wait";
+            }
+            else if (this.Owner.PatrolEnemyLogic.PatrolEnemy.EnemyState == EnemyState.GoBack)
+            {
+                this.Owner.SpriteText.Text = "Go Back";
+            }
+            else if (this.Owner.PatrolEnemyLogic.PatrolEnemy.EnemyState == EnemyState.Attack)
+            {
+                this.Owner.SpriteText.Text = "Attack";
+            }
+            else if (this.Owner.PatrolEnemyLogic.PatrolEnemy.EnemyState == EnemyState.Dying)
+            {
+                this.Owner.SpriteText.Text = "Dying";
+            }
+        }
+    }
+}
