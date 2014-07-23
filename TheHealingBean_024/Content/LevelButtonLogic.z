@@ -1,0 +1,55 @@
+class LevelButtonLogic : ZilchComponent
+{
+    var NextLevel : Level = null;
+    
+    var Button : Cog = null;
+    var LevelSettings : Cog = null;
+    
+    var StringBuilder : StringBuilder = new StringBuilder();
+    
+    function Initialize(init : CogInitializer)
+    {
+        //Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+        Zero.Connect(this.Owner, Events.MouseEnter, this.OnMouseEnter);
+        Zero.Connect(this.Owner, Events.MouseExit, this.OnMouseExit);
+        Zero.Connect(this.Owner, Events.MouseDown, this.OnMouseDown);
+        Zero.Connect(this.Owner, Events.MouseUp, this.OnMouseUp);
+        
+        this.LevelSettings = this.Space.FindObjectByName("LevelSettings");
+
+        this.StringBuilder.Write("Level_");
+    }
+    
+    function SetLevel(levelnum: Integer)
+    {
+        this.Button = this.LevelSettings.LevelSelectLogic.IconArr.Get(levelnum);
+        this.StringBuilder.Write(this.LevelSettings.LevelSelectLogic.NumArr.Get(levelnum).SpriteText.Text);
+        this.NextLevel = Level.Find(this.StringBuilder.ToString());
+    }
+
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+    }
+    
+    function OnMouseUp(event : ViewportMouseEvent)
+    {
+        this.Button.Sprite.CurrentFrame = 0;
+        
+        this.GameSession.FindSpaceByName("Main").LoadLevel(this.NextLevel);
+    }
+
+    function OnMouseDown(event : ViewportMouseEvent)
+    {
+        this.Button.Sprite.CurrentFrame = 2;
+    }
+
+    function OnMouseExit(event : ViewportMouseEvent)
+    {
+        this.Button.Sprite.CurrentFrame = 0;
+    }
+
+    function OnMouseEnter(event : ViewportMouseEvent)
+    {
+        this.Button.Sprite.CurrentFrame = 1;
+    }
+}

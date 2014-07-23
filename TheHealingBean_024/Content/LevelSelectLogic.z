@@ -1,0 +1,64 @@
+class LevelSelectLogic : ZilchComponent
+{
+    var Title : Cog = null;
+    
+    var ButtonPos : Real3 = local Real3(-5, 2, 1);
+    var GapX : Real3 = local Real3(2,0,0);
+    var GapY : Real3 = local Real3(0,-2,0);
+    
+    var NumberPos : Real3 = local Real3(-5.25, 2.3, 2);
+    
+    var IconArr : Array[Cog] = new Array[Cog]();
+    var NumArr : Array[Cog] = new Array[Cog]();
+    
+    function Initialize(init : CogInitializer)
+    {
+        //Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+        this.Title = this.Space.FindObjectByName("LevelSelect");
+        
+        for(var j = 0; j < 3; ++j)
+        { 
+            for(var i = 0; i < 4; ++i)
+            {
+                var builder = new StringBuilder();
+                
+                this.IconArr.Add(this.Space.CreateAtPosition(Archetype.Find("LevelButton"), 
+                                this.ButtonPos + this.GapX * i + this.GapY * j));
+                this.IconArr.Get(j * 4 + i).Sprite.Visible = false;
+                
+                this.NumArr.Add(this.Space.CreateAtPosition(Archetype.Find("ButtonNumber"), 
+                                this.NumberPos + this.GapX * i + this.GapY * j));
+                
+                this.NumArr.Get(j * 4 + i).SpriteText.Visible = false;
+                
+                if (j * 4 + i + 1 < 10)
+                {
+                    builder.Write(0);
+                }
+                builder.Write(j * 4 + i + 1);
+                
+                this.NumArr.Get(j * 4 + i).SpriteText.Text = builder.ToString();
+                this.NumArr.Get(j * 4 + i).LevelButtonLogic.SetLevel(j * 4 + i);
+            }
+        }
+    }
+
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        if (!this.Title.SpriteText.Visible)
+        {
+            return;
+        }
+    }
+    
+    function ChangeVisibility()
+    {
+        this.Title.SpriteText.Visible = !this.Title.SpriteText.Visible;
+        
+        for(var i = 0; i < 12; ++i)
+        {
+            this.IconArr.Get(i).Sprite.Visible = !this.IconArr.Get(i).Sprite.Visible;
+            this.NumArr.Get(i).SpriteText.Visible = !this.NumArr.Get(i).SpriteText.Visible;
+        }
+    }
+}
